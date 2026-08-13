@@ -237,7 +237,7 @@ $customer_name =
 
                     <label for="customer_name">
 
-                        Full Name
+                        Full Name*
 
                     </label>
 
@@ -253,7 +253,13 @@ $customer_name =
                         ?>"
                         required
                         maxlength="100"
-                        placeholder="Enter your full name">
+                        placeholder="Enter your full name"
+                        autocomplete="name">
+
+                    <small
+                        id="name-error"
+                        class="field-error">
+                    </small>
 
                 </div>
 
@@ -265,7 +271,7 @@ $customer_name =
 
                     <label for="customer_phone">
 
-                        Phone Number
+                        Phone Number*
 
                     </label>
 
@@ -275,8 +281,16 @@ $customer_name =
                         id="customer_phone"
                         name="customer_phone"
                         required
-                        maxlength="20"
-                        placeholder="Enter your phone number">
+                        maxlength="10"
+                        minlength="10"
+                        inputmode="numeric"
+                        placeholder="98XXXXXXXX"
+                        autocomplete="tel">
+
+                    <small
+                        id="phone-error"
+                        class="field-error">
+                    </small>
 
                 </div>
 
@@ -288,7 +302,7 @@ $customer_name =
 
                     <label for="delivery_address">
 
-                        Delivery Address
+                        Delivery Address*
 
                     </label>
 
@@ -312,6 +326,7 @@ $customer_name =
                     <label for="order_note">
 
                         Order Note
+
                         <span>
                             (Optional)
                         </span>
@@ -327,98 +342,79 @@ $customer_name =
                         placeholder="Any special instructions?"></textarea>
 
                 </div>
-                
-
-               <!-- PAYMENT METHOD -->
-
-<div class="checkout-form-group">
-
-    <label>
-        Payment Method
-    </label>
-
-
-    <div class="payment-methods">
-
-
-        <label class="payment-method-card">
-
-            <input
-                type="radio"
-                name="payment_method"
-                value="Cash on Delivery"
-                checked>
-
-            <span>
-
-                <strong>
-                    Cash on Delivery
-                </strong>
-
-                <small>
-                    Pay when your food arrives.
-                </small>
-
-            </span>
-
-        </label>
 
 
 
-        <label class="payment-method-card">
+                <!-- PAYMENT METHOD -->
 
-            <input
-                type="radio"
-                name="payment_method"
-                value="eSewa">
+                <div class="checkout-form-group">
 
-            <span>
-
-                <strong>
-                    eSewa
-                </strong>
-
-                <small>
-                    Pay securely using eSewa.
-                </small>
-
-            </span>
-
-        </label>
+                    <label>
+                        Payment Method
+                    </label>
 
 
-
-        <label class="payment-method-card">
-
-            <input
-                type="radio"
-                name="payment_method"
-                value="Khalti">
-
-            <span>
-
-                <strong>
-                    Khalti
-                </strong>
-
-                <small>
-                    Pay securely using Khalti.
-                </small>
-
-            </span>
-
-        </label>
+                    <div class="payment-methods">
 
 
-    </div>
+                        <label class="payment-method-card">
 
-</div>
+                            <input
+                                type="radio"
+                                name="payment_method"
+                                value="Cash on Delivery"
+                                checked>
+
+                            <span>
+
+                                <strong>
+                                    Cash on Delivery
+                                </strong>
+
+                                <small>
+                                    Pay when your food arrives.
+                                </small>
+
+                            </span>
+
+                        </label>
 
 
+
+                        <label class="payment-method-card">
+
+                            <input
+                                type="radio"
+                                name="payment_method"
+                                value="eSewa">
+
+                            <span>
+
+                                <strong>
+                                    eSewa
+                                </strong>
+
+                                <small>
+                                    Pay securely using eSewa.
+                                </small>
+
+                            </span>
+
+                        </label>
+
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- PLACE ORDER -->
 
                 <button
                     type="submit"
-                    class="place-order-btn">
+                    class="place-order-btn"
+                    id="placeOrderBtn">
 
                     Place Order
 
@@ -471,7 +467,9 @@ $customer_name =
                                 <?php
                                 echo $item['quantity'];
                                 ?>
+
                                 × Rs.
+
                                 <?php
                                 echo number_format(
                                     $item['price'],
@@ -487,6 +485,7 @@ $customer_name =
                         <strong>
 
                             Rs.
+
                             <?php
                             echo number_format(
                                 $item['total'],
@@ -507,7 +506,7 @@ $customer_name =
 
 
 
-            <!-- TOTALS -->
+            <!-- SUBTOTAL -->
 
             <div class="checkout-total-row">
 
@@ -518,6 +517,7 @@ $customer_name =
                 <strong>
 
                     Rs.
+
                     <?php
                     echo number_format(
                         $subtotal,
@@ -530,6 +530,9 @@ $customer_name =
             </div>
 
 
+
+            <!-- DELIVERY CHARGE -->
+
             <div class="checkout-total-row">
 
                 <span>
@@ -539,6 +542,7 @@ $customer_name =
                 <strong>
 
                     Rs.
+
                     <?php
                     echo number_format(
                         $delivery_charge,
@@ -551,6 +555,9 @@ $customer_name =
             </div>
 
 
+
+            <!-- GRAND TOTAL -->
+
             <div class="checkout-grand-total">
 
                 <span>
@@ -560,6 +567,7 @@ $customer_name =
                 <strong>
 
                     Rs.
+
                     <?php
                     echo number_format(
                         $total_amount,
@@ -581,32 +589,258 @@ $customer_name =
 </main>
 
 
+
 <script>
 
-document
-    .getElementById('checkoutForm')
-    .addEventListener(
-        'submit',
-        function (event) {
+/*
+|--------------------------------------------------------------------------
+| GET ELEMENTS
+|--------------------------------------------------------------------------
+*/
 
-            const phone =
-                document
-                    .getElementById('customer_phone')
-                    .value
-                    .trim();
+const checkoutForm =
+    document.getElementById("checkoutForm");
 
-            if (phone.length < 7) {
+const nameInput =
+    document.getElementById("customer_name");
 
-                event.preventDefault();
+const nameError =
+    document.getElementById("name-error");
 
-                alert(
-                    'Please enter a valid phone number.'
-                );
+const phoneInput =
+    document.getElementById("customer_phone");
 
-            }
+const phoneError =
+    document.getElementById("phone-error");
+
+
+/*
+|--------------------------------------------------------------------------
+| FULL NAME LIVE VALIDATION
+|--------------------------------------------------------------------------
+*/
+
+nameInput.addEventListener("input", function () {
+
+    /*
+     * Allow only letters and spaces
+     */
+    this.value =
+        this.value.replace(
+            /[^A-Za-z ]/g,
+            ""
+        );
+
+
+    const name =
+        this.value.trim();
+
+
+    /*
+     * Empty
+     */
+    if (name === "") {
+
+        nameError.textContent = "";
+
+        return;
+    }
+
+
+    /*
+     * Minimum 3 characters
+     */
+    if (name.length < 3) {
+
+        nameError.textContent =
+            "Name must contain only letters and atleast 3 characters.";
+
+        return;
+    }
+
+
+    /*
+     * Valid
+     */
+    nameError.textContent = "";
+
+});
+
+
+
+/*
+|--------------------------------------------------------------------------
+| PHONE LIVE VALIDATION
+|--------------------------------------------------------------------------
+*/
+
+phoneInput.addEventListener("input", function () {
+
+    /*
+     * Numbers only
+     */
+    this.value =
+        this.value
+            .replace(
+                /[^0-9]/g,
+                ""
+            )
+            .slice(0, 10);
+
+
+    const phone =
+        this.value;
+
+
+    /*
+     * Empty
+     */
+    if (phone === "") {
+
+        phoneError.textContent = "";
+
+        return;
+    }
+
+
+    /*
+     * Check starting digits
+     */
+    if (
+        phone.length >= 2 &&
+        !phone.startsWith("97") &&
+        !phone.startsWith("98")
+    ) {
+
+        phoneError.textContent =
+            "Phone number must start with 97 or 98.";
+
+        return;
+    }
+
+
+    /*
+     * Check length
+     */
+    if (phone.length < 10) {
+
+        phoneError.textContent =
+            "Phone number must contain exactly 10 digits.";
+
+        return;
+    }
+
+
+    /*
+     * Valid
+     */
+    phoneError.textContent = "";
+
+});
+
+
+
+/*
+|--------------------------------------------------------------------------
+| FORM SUBMIT VALIDATION
+|--------------------------------------------------------------------------
+*/
+
+checkoutForm.addEventListener(
+    "submit",
+    function (event) {
+
+        const name =
+            nameInput.value.trim();
+
+        const phone =
+            phoneInput.value.trim();
+
+
+        let valid = true;
+
+
+        /*
+         * NAME VALIDATION
+         */
+
+        if (name === "") {
+
+            nameError.textContent =
+                "Full name is required.";
+
+            valid = false;
 
         }
-    );
+
+        else if (name.length < 3) {
+
+            nameError.textContent =
+                "Name must contain at least 3 characters.";
+
+            valid = false;
+
+        }
+
+        else if (!/^[A-Za-z ]+$/.test(name)) {
+
+            nameError.textContent =
+                "Name can contain only letters and spaces.";
+
+            valid = false;
+
+        }
+
+        else {
+
+            nameError.textContent = "";
+
+        }
+
+
+
+        /*
+         * PHONE VALIDATION
+         */
+
+        if (phone === "") {
+
+            phoneError.textContent =
+                "Phone number is required.";
+
+            valid = false;
+
+        }
+
+        else if (!/^(97|98)[0-9]{8}$/.test(phone)) {
+
+            phoneError.textContent =
+                "Phone number must start with 97 or 98 and contain exactly 10 digits.";
+
+            valid = false;
+
+        }
+
+        else {
+
+            phoneError.textContent = "";
+
+        }
+
+
+
+        /*
+         * STOP FORM IF INVALID
+         */
+
+        if (!valid) {
+
+            event.preventDefault();
+
+        }
+
+    }
+);
 
 </script>
 

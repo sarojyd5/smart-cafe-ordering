@@ -159,7 +159,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <div class="form-group">
 
                     <label for="email">
-                        Email Address
+                        Email Address*
                     </label>
 
                     <input
@@ -176,16 +176,27 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <div class="form-group">
 
                     <label for="password">
-                        Password
+                        Password*
                     </label>
 
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        required>
+                   <div class="password-wrapper">
 
+    <input
+        type="password"
+        id="password"
+        name="password"
+        placeholder="Enter your password"
+        required>
+
+    <button
+        type="button"
+        class="password-toggle"
+        onclick="togglePassword('password', this)"
+        aria-label="Show password">
+        👁
+    </button>
+
+</div>
                 </div>
 
 
@@ -200,15 +211,24 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             </form>
 
 
-            <p class="auth-switch">
+           <p class="auth-switch">
 
-                Don't have an account?
+    <a href="forgot_password.php">
+        Forgot Password?
+    </a>
 
-                <a href="register.php">
-                    Create Account
-                </a>
+</p>
 
-            </p>
+
+<p class="auth-switch">
+
+    Don't have an account?
+
+    <a href="register.php">
+        Create Account
+    </a>
+
+</p>
 
         </div>
 
@@ -218,6 +238,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
 <?php include "includes/footer.php"; ?>
+<script>
+
+function togglePassword(inputId, button) {
+
+    const input = document.getElementById(inputId);
+
+    if (input.type === "password") {
+
+        input.type = "text";
+
+        button.textContent = "🙈";
+        button.setAttribute("aria-label", "Hide password");
+
+    } else {
+
+        input.type = "password";
+
+        button.textContent = "👁";
+        button.setAttribute("aria-label", "Show password");
+
+    }
+
+}
+
+</script>
 
 </body>
 

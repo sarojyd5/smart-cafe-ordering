@@ -302,203 +302,175 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                  | SEND OTP USING PHPMailer
                  |--------------------------------------------------------------------------
                  */
+/*
+|--------------------------------------------------------------------------
+| SEND OTP USING PHPMailer
+|--------------------------------------------------------------------------
+*/
 
-                $mail = new PHPMailer(true);
+$mail = new PHPMailer(true);
 
+try {
 
-                try {
+    /*
+     * SMTP configuration
+     */
 
-                    /*
-                     * SMTP configuration
-                     */
+    $mail->isSMTP();
 
-                    $mail->isSMTP();
+    $mail->Host = SMTP_HOST;
 
-                    $mail->Host =
-                        'smtp.gmail.com';
+    $mail->SMTPAuth = true;
 
-                    $mail->SMTPAuth =
-                        true;
+    $mail->Username = SMTP_USERNAME;
 
+    $mail->Password = SMTP_PASSWORD;
 
-                    /*
-                     * YOUR GMAIL ADDRESS
-                     */
+    $mail->SMTPSecure =
+        PHPMailer::ENCRYPTION_STARTTLS;
 
-                    $mail->Username =
-                        'ydsaroj2062@gmail.com';
+    $mail->Port = SMTP_PORT;
 
 
-                    /*
-                     * YOUR GMAIL APP PASSWORD
-                     *
-                     * Do NOT use your normal Gmail password.
-                     */
+    /*
+     * Sender
+     */
 
-                    $mail->Password =
-                        'awnyvhddagonurbe';
+    $mail->setFrom(
+        MAIL_FROM_EMAIL,
+        MAIL_FROM_NAME
+    );
 
 
-                    /*
-                     * Gmail TLS
-                     */
+    /*
+     * Customer email
+     */
 
-                    $mail->SMTPSecure =
-                        PHPMailer::ENCRYPTION_STARTTLS;
+    $mail->addAddress(
+        $email,
+        $full_name
+    );
 
-                    $mail->Port =
-                        587;
 
+    /*
+     * Email format
+     */
 
-                    /*
-                     * Sender
-                     */
+    $mail->isHTML(false);
 
-                    $mail->setFrom(
-                        'ydsaroj2062@gmail.com',
-                        'Timeout Cafe'
-                    );
 
+    /*
+     * Subject
+     */
 
-                    /*
-                     * Customer email
-                     */
+    $mail->Subject =
+        "Timeout Cafe - Your Registration OTP";
 
-                    $mail->addAddress(
-                        $email,
-                        $full_name
-                    );
 
+    /*
+     * Message
+     */
 
-                    /*
-                     * Email format
-                     */
+    $mail->Body =
+        "Hello " . $full_name . ",\r\n\r\n"
+        . "Thank you for registering at Timeout Cafe.\r\n\r\n"
+        . "Your verification OTP is: "
+        . $otp
+        . "\r\n\r\n"
+        . "This OTP is valid for 5 minutes.\r\n\r\n"
+        . "Please do not share this OTP with anyone.\r\n\r\n"
+        . "If you did not request this registration, "
+        . "please ignore this email.\r\n\r\n"
+        . "Regards,\r\n"
+        . "Timeout Cafe";
 
-                    $mail->isHTML(false);
 
+    /*
+     * Send email
+     */
 
-                    /*
-                     * Subject
-                     */
+    $mail->send();
 
-                    $mail->Subject =
-                        'Timeout Cafe - Your Registration OTP';
 
+    /*
+     |--------------------------------------------------------------------------
+     | STORE OTP REGISTRATION SESSION
+     |--------------------------------------------------------------------------
+     */
 
-                    /*
-                     * Email message
-                     */
+    $_SESSION['otp_customer_id'] =
+        $customer_id;
 
-                    $mail->Body =
-                        "Hello " . $full_name . ",\r\n\r\n"
+    $_SESSION['otp_email'] =
+        $email;
 
-                        . "Thank you for registering at Timeout Cafe.\r\n\r\n"
 
-                        . "Your verification OTP is: "
-                        . $otp
-                        . "\r\n\r\n"
+    /*
+     |--------------------------------------------------------------------------
+     | REDIRECT TO OTP PAGE
+     |--------------------------------------------------------------------------
+     */
 
-                        . "This OTP is valid for 5 minutes.\r\n\r\n"
+    header(
+        "Location: verify_otp.php"
+    );
 
-                        . "Please do not share this OTP with anyone.\r\n\r\n"
+    exit();
 
-                        . "If you did not request this registration, "
-                        . "please ignore this email.\r\n\r\n"
 
-                        . "Regards,\r\n"
-                        . "Timeout Cafe";
+} catch (Exception $e) {
 
+    /*
+     |--------------------------------------------------------------------------
+     | EMAIL FAILED
+     |--------------------------------------------------------------------------
+     */
 
-                    /*
-                     * Send email
-                     */
+    error_log(
+        "PHPMailer Error: "
+        . $mail->ErrorInfo
+    );
 
-                    $mail->send();
 
+    /*
+     * Delete unverified customer
+     */
 
-                    /*
-                     |--------------------------------------------------------------------------
-                     | STORE OTP REGISTRATION SESSION
-                     |--------------------------------------------------------------------------
-                     */
+    $delete_sql = "
+        DELETE FROM customers
+        WHERE customer_id = ?
+    ";
 
-                    $_SESSION['otp_customer_id'] =
-                        $customer_id;
+    $delete_stmt =
+        mysqli_prepare(
+            $conn,
+            $delete_sql
+        );
 
-                    $_SESSION['otp_email'] =
-                        $email;
 
+    if ($delete_stmt) {
 
-                    /*
-                     |--------------------------------------------------------------------------
-                     | REDIRECT TO OTP PAGE
-                     |--------------------------------------------------------------------------
-                     */
+        mysqli_stmt_bind_param(
+            $delete_stmt,
+            "i",
+            $customer_id
+        );
 
-                    header(
-                        "Location: verify_otp.php"
-                    );
+        mysqli_stmt_execute(
+            $delete_stmt
+        );
 
-                    exit();
+        mysqli_stmt_close(
+            $delete_stmt
+        );
 
+    }
 
-                } catch (Exception $e) {
 
+    $errors[] =
+        "Unable to send OTP email. Please check your email configuration and try again.";
 
-                    /*
-                     |--------------------------------------------------------------------------
-                     | EMAIL FAILED
-                     |--------------------------------------------------------------------------
-                     */
-
-                    error_log(
-                        "PHPMailer Error: "
-                        . $mail->ErrorInfo
-                    );
-
-
-                    /*
-                     * Delete unverified customer
-                     */
-
-                    $delete_sql = "
-                        DELETE FROM customers
-                        WHERE customer_id = ?
-                    ";
-
-
-                    $delete_stmt =
-                        mysqli_prepare(
-                            $conn,
-                            $delete_sql
-                        );
-
-
-                    if ($delete_stmt) {
-
-                        mysqli_stmt_bind_param(
-                            $delete_stmt,
-                            "i",
-                            $customer_id
-                        );
-
-
-                        mysqli_stmt_execute(
-                            $delete_stmt
-                        );
-
-
-                        mysqli_stmt_close(
-                            $delete_stmt
-                        );
-
-                    }
-
-
-                    $errors[] =
-                        "Unable to send OTP email. Please check your email configuration and try again.";
-
-                }
+}
 
             } else {
 
@@ -606,11 +578,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <div class="form-group">
 
                     <label for="full_name">
-                        Full Name
+                        Full Name*
                     </label>
 
 
-                    <input
+<input
     type="text"
     id="full_name"
     name="full_name"
@@ -618,18 +590,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     echo escape($full_name);
     ?>"
     placeholder="Enter your full name"
-    pattern="[A-Za-z ]+"
-    title="Name can contain only letters and spaces."
-    oninput="this.value = this.value.replace(/[^A-Za-z ]/g, '')"
     required>
 
+<small id="name-error" class="field-error"></small>
                 </div>
 
 
                 <div class="form-group">
 
                     <label for="email">
-                        Email Address
+                        Email Address*
                     </label>
 
 
@@ -649,7 +619,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <div class="form-group">
 
                     <label for="phone">
-                        Phone Number
+                        Phone Number*
                     </label>
 
 <input
@@ -661,47 +631,67 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     ?>"
     placeholder="98XXXXXXXX"
     maxlength="10"
-    pattern="(97|98)[0-9]{8}"
     inputmode="numeric"
-    title="Phone number must be 10 digits and start with 97 or 98."
-    oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10)"
     required>
 
+<small id="phone-error" class="field-error"></small>
                 </div>
 
+<div class="form-group">
 
-                <div class="form-group">
+    <label for="password">
+        Password*
+    </label>
 
-                    <label for="password">
-                        Password
-                    </label>
+    <div class="password-wrapper">
 
+        <input
+            type="password"
+            id="password"
+            name="password"
+            placeholder="At least 6 characters"
+            required>
 
-                    <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        placeholder="At least 6 characters"
-                        required>
+        <button
+            type="button"
+            class="password-toggle"
+            onclick="togglePassword('password', 'password-eye')">
 
-                </div>
+            <span id="password-eye">👁</span>
 
+        </button>
 
-                <div class="form-group">
+    </div>
 
-                    <label for="confirm_password">
-                        Confirm Password
-                    </label>
+</div>
 
+               <div class="form-group">
 
-                    <input
-                        type="password"
-                        id="confirm_password"
-                        name="confirm_password"
-                        placeholder="Re-enter your password"
-                        required>
+    <label for="confirm_password">
+        Confirm Password*
+    </label>
 
-                </div>
+    <div class="password-wrapper">
+
+        <input
+            type="password"
+            id="confirm_password"
+            name="confirm_password"
+            placeholder="Re-enter your password"
+            required>
+
+        <button
+            type="button"
+            class="password-toggle"
+            onclick="togglePassword('confirm_password', 'confirm-password-eye')">
+
+            <span id="confirm-password-eye">👁</span>
+
+        </button>
+
+    </div>
+
+</div>
 
 
                 <button
@@ -735,6 +725,124 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
 <?php include "includes/footer.php"; ?>
+
+<script>
+
+const nameInput = document.getElementById("full_name");
+const nameError = document.getElementById("name-error");
+
+const phoneInput = document.getElementById("phone");
+const phoneError = document.getElementById("phone-error");
+
+
+/*
+|--------------------------------------------------------------------------
+| FULL NAME LIVE VALIDATION
+|--------------------------------------------------------------------------
+*/
+
+nameInput.addEventListener("input", function () {
+
+    // Allow letters and spaces only
+    this.value = this.value.replace(/[^A-Za-z ]/g, "");
+
+    const name = this.value.trim();
+
+    if (name === "") {
+
+        nameError.textContent = "";
+
+    } else if (name.length < 3) {
+
+        nameError.textContent =
+            "Name must contain at least 3 characters and only letters.";
+
+    } else {
+
+        nameError.textContent = "";
+
+    }
+
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| PHONE LIVE VALIDATION
+|--------------------------------------------------------------------------
+*/
+
+phoneInput.addEventListener("input", function () {
+
+    // Numbers only
+    this.value = this.value
+        .replace(/[^0-9]/g, "")
+        .slice(0, 10);
+
+    const phone = this.value;
+
+
+    if (phone === "") {
+
+        phoneError.textContent = "";
+
+    }
+
+    else if (
+        phone.length >= 2 &&
+        !phone.startsWith("97") &&
+        !phone.startsWith("98")
+    ) {
+
+        phoneError.textContent =
+            "Phone number must start with 97 or 98.";
+
+    }
+
+    else if (phone.length < 10) {
+
+        phoneError.textContent =
+            "Phone number must start with 98 or 97 and contain 10 digits.";
+
+    }
+
+    else {
+
+        phoneError.textContent = "";
+
+    }
+
+});
+
+function togglePassword(inputId, eyeId) {
+
+    const passwordInput =
+        document.getElementById(inputId);
+
+    const eye =
+        document.getElementById(eyeId);
+
+    if (passwordInput.type === "password") {
+
+        passwordInput.type = "text";
+
+        eye.textContent = "🙈";
+
+    } else {
+
+        passwordInput.type = "password";
+
+        eye.textContent = "👁";
+
+    }
+
+}
+
+
+
+</script>
+
+
 
 
 </body>

@@ -33,6 +33,27 @@ define('MAIL_FROM_NAME', 'Timeout Cafe');
 
 /*
 |--------------------------------------------------------------------------
+| SMTP Configuration
+|--------------------------------------------------------------------------
+|
+| Gmail SMTP is used by PHPMailer.
+|
+*/
+
+define('SMTP_HOST', 'smtp.gmail.com');
+define('SMTP_PORT', 587);
+define('SMTP_USERNAME', 'ydsaroj2062@gmail.com');
+
+/*
+ * IMPORTANT:
+ * Use your Gmail APP PASSWORD here.
+ * Do NOT use your normal Gmail password.
+ */
+define('SMTP_PASSWORD', 'awnyvhddagonurbe');
+
+
+/*
+|--------------------------------------------------------------------------
 | OTP Configuration
 |--------------------------------------------------------------------------
 */

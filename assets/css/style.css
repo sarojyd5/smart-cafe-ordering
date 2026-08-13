@@ -85,6 +85,7 @@ a{
     gap:20px;
 
     align-items:center;
+    
 
 }
 
@@ -92,7 +93,7 @@ a{
 
     background:#E0A75E;
 
-    color:#2B2B2B;
+    color:#faf6f6;
 
     padding:10px 20px;
 
@@ -2864,4 +2865,516 @@ footer hr{
 
 .payment-method-card small {
     color: #777;
+}
+
+.field-error {
+    display: block;
+    margin-top: 5px;
+    font-size: 13px;
+    color: #dc2626;
+}
+
+.password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-wrapper input {
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 50px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    width: 30px;
+    height: 30px;
+
+    border: none;
+    background: transparent;
+
+    padding: 0;
+    margin: 0;
+
+    cursor: pointer;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 18px;
+}
+
+/* =========================================================
+   TIMEOUT CAFE - INDEX / HOME PAGE
+   ========================================================= */
+
+/* ---------- Page ---------- */
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    background: #fff8f2;
+    color: #2d2926;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+
+/* =========================================================
+   HERO SECTION
+   ========================================================= */
+
+.hero {
+    min-height: calc(100vh - 78px);
+
+    padding: 70px 8%;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 70px;
+
+    box-sizing: border-box;
+
+    background:
+        radial-gradient(
+            circle at 85% 50%,
+            rgba(189, 93, 50, 0.12),
+            transparent 35%
+        ),
+        #fff8f2;
+
+    overflow: hidden;
+}
+
+
+/* =========================================================
+   HERO TEXT
+   ========================================================= */
+
+.hero-text {
+    flex: 1;
+
+    max-width: 620px;
+
+    animation: heroText 0.8s ease;
+}
+
+
+.hero-text h3 {
+    margin: 0 0 12px;
+
+    color: #bd5d32;
+
+    font-size: 17px;
+
+    font-weight: 700;
+
+    letter-spacing: 2px;
+}
+
+
+.hero-text h1 {
+    margin: 0 0 22px;
+
+    color: #292524;
+
+    font-size: clamp(48px, 6vw, 78px);
+
+    line-height: 1.05;
+
+    font-weight: 800;
+
+    letter-spacing: -2px;
+}
+
+
+.hero-text h1 span {
+    color: #bd5d32;
+}
+
+
+.hero-text p {
+    max-width: 580px;
+
+    margin: 0 0 35px;
+
+    color: #625b56;
+
+    font-size: 18px;
+
+    line-height: 1.7;
+}
+
+
+/* =========================================================
+   HERO IMAGE
+   ========================================================= */
+
+.hero-image {
+    flex: 1;
+
+    display: flex;
+
+    justify-content: center;
+
+    align-items: center;
+
+    animation: heroImage 0.9s ease;
+}
+
+
+.hero-image img {
+    display: block;
+
+    width: 100%;
+
+    max-width: 560px;
+
+    height: auto;
+
+    object-fit: cover;
+
+    border-radius: 30px;
+
+    box-shadow:
+        0 25px 60px rgba(75, 43, 29, 0.22);
+
+    transition:
+        transform 0.4s ease,
+        box-shadow 0.4s ease;
+}
+
+
+.hero-image img:hover {
+    transform: translateY(-8px) scale(1.02);
+
+    box-shadow:
+        0 35px 75px rgba(75, 43, 29, 0.28);
+}
+
+
+/* =========================================================
+   HERO BUTTON CONTAINER
+   ========================================================= */
+
+.hero-buttons {
+    display: flex;
+
+    align-items: center;
+
+    gap: 16px;
+
+    flex-wrap: wrap;
+}
+
+
+/* =========================================================
+   BUTTON COMMON STYLE
+   ========================================================= */
+
+.btn-primary,
+.btn-secondary {
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    min-width: 135px;
+
+    padding: 14px 28px;
+
+    border-radius: 30px;
+
+    font-size: 16px;
+
+    font-weight: 600;
+
+    text-decoration: none;
+
+    box-sizing: border-box;
+
+    transition:
+        transform 0.25s ease,
+        background 0.25s ease,
+        color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+
+/* =========================================================
+   ORDER NOW
+   ========================================================= */
+
+.btn-primary {
+    background: #bd5d32;
+
+    color: #ffffff;
+
+    border: 2px solid #bd5d32;
+
+    box-shadow:
+        0 8px 20px rgba(189, 93, 50, 0.25);
+}
+
+
+.btn-primary:hover {
+    background: #a94f29;
+
+    color: #ffffff;
+
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 12px 25px rgba(189, 93, 50, 0.35);
+}
+
+
+/* =========================================================
+   LEARN MORE
+   ========================================================= */
+
+.btn-secondary {
+    background: transparent;
+
+    color: #bd5d32;
+
+    border: 2px solid #bd5d32;
+}
+
+
+.btn-secondary:hover {
+    background: #bd5d32;
+
+    color: #ffffff;
+
+    transform: translateY(-3px);
+
+    box-shadow:
+        0 8px 20px rgba(189, 93, 50, 0.20);
+}
+
+
+/* =========================================================
+   BUTTON CLICK
+   ========================================================= */
+
+.btn-primary:active,
+.btn-secondary:active {
+    transform: translateY(0);
+}
+
+
+/* =========================================================
+   HERO ANIMATIONS
+   ========================================================= */
+
+@keyframes heroText {
+
+    from {
+        opacity: 0;
+
+        transform: translateX(-35px);
+    }
+
+    to {
+        opacity: 1;
+
+        transform: translateX(0);
+    }
+}
+
+
+@keyframes heroImage {
+
+    from {
+        opacity: 0;
+
+        transform: translateX(35px);
+    }
+
+    to {
+        opacity: 1;
+
+        transform: translateX(0);
+    }
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 900px) {
+
+    .hero {
+        min-height: auto;
+
+        padding: 70px 6%;
+
+        flex-direction: column;
+
+        text-align: center;
+
+        gap: 50px;
+    }
+
+
+    .hero-text {
+        max-width: 700px;
+    }
+
+
+    .hero-text p {
+        margin-left: auto;
+
+        margin-right: auto;
+    }
+
+
+    .hero-buttons {
+        justify-content: center;
+    }
+
+
+    .hero-image {
+        width: 100%;
+    }
+
+
+    .hero-image img {
+        max-width: 520px;
+    }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    .hero {
+        padding: 50px 20px;
+
+        gap: 40px;
+    }
+
+
+    .hero-text h3 {
+        font-size: 14px;
+
+        letter-spacing: 1.5px;
+    }
+
+
+    .hero-text h1 {
+        font-size: 46px;
+
+        letter-spacing: -1px;
+    }
+
+
+    .hero-text p {
+        font-size: 16px;
+
+        line-height: 1.6;
+    }
+
+
+    .hero-buttons {
+        width: 100%;
+
+        flex-direction: column;
+
+        gap: 12px;
+    }
+
+
+    .btn-primary,
+    .btn-secondary {
+        width: 100%;
+
+        min-width: 0;
+    }
+
+
+    .hero-image img {
+        width: 100%;
+
+        border-radius: 22px;
+    }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+    .hero {
+        padding: 40px 16px;
+    }
+
+
+    .hero-text h1 {
+        font-size: 40px;
+    }
+
+
+    .hero-text p {
+        font-size: 15px;
+    }
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible {
+    outline: 3px solid #f4b860;
+
+    outline-offset: 4px;
+}
+
+
+/* =========================================================
+   REDUCE ANIMATION IF USER PREFERS
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+    html {
+        scroll-behavior: auto;
+    }
+
+
+    .hero-text,
+    .hero-image {
+        animation: none;
+    }
+
+
+    .hero-image img,
+    .btn-primary,
+    .btn-secondary {
+        transition: none;
+    }
 }

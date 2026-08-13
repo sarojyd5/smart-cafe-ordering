@@ -43,7 +43,7 @@
         <div class="hero-image">
 
             <!-- Replace later -->
-            <img src="assets/images/hero/hero.png" alt="Hero Image">
+            <img src="assets/images/hero1.png" alt="Hero Image">
 
         </div>
 
