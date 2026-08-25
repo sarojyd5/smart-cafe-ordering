@@ -38,7 +38,7 @@
 
             <h3>Contact</h3>
 
-            <p>Phone: 98XXXXXXXX</p>
+            <p>Phone: 9810899601</p>
 
             <p>Email: info@timeoutcafe.com</p>
 
