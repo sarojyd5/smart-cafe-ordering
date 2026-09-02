@@ -74,17 +74,14 @@ requireCustomerLogin();
 
 </a>
 
-        <a href="#" class="dashboard-card">
+<a href="profile.php" class="dashboard-card">
 
-            <h2>My Profile</h2>
+    <h2>My Profile</h2>
 
-            <p>
-                Manage your account information.
-            </p>
+    <p>Manage your account information.</p>
 
-        </a>
-
-    </section>
+</a>
+</section>
 
 </main>
 

@@ -86,6 +86,8 @@ if (isset($_SESSION['cart']) && is_array($_SESSION['cart'])) {
 
         </div>
 
+        
+
     </nav>
 
 </header>

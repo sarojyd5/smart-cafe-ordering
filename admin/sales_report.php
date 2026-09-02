@@ -14,36 +14,6 @@ if (!isset($_SESSION['admin_id'])) {
 
 /*
 |--------------------------------------------------------------------------
-| TOTAL ORDERS
-|--------------------------------------------------------------------------
-*/
-
-$sql = "SELECT COUNT(*) AS total FROM orders";
-
-$result = mysqli_query($conn, $sql);
-
-$row = mysqli_fetch_assoc($result);
-
-$total_orders = $row['total'];
-
-
-/*
-|--------------------------------------------------------------------------
-| TOTAL CUSTOMERS
-|--------------------------------------------------------------------------
-*/
-
-$sql = "SELECT COUNT(*) AS total FROM customers";
-
-$result = mysqli_query($conn, $sql);
-
-$row = mysqli_fetch_assoc($result);
-
-$total_customers = $row['total'];
-
-
-/*
-|--------------------------------------------------------------------------
 | TODAY'S SALES
 |--------------------------------------------------------------------------
 */
@@ -56,7 +26,6 @@ $sql = "
 ";
 
 $result = mysqli_query($conn, $sql);
-
 $row = mysqli_fetch_assoc($result);
 
 $today_sales = $row['total'];
@@ -64,64 +33,61 @@ $today_sales = $row['total'];
 
 /*
 |--------------------------------------------------------------------------
-| PENDING ORDERS
+| TOTAL SALES
+|--------------------------------------------------------------------------
+*/
+
+$sql = "
+    SELECT COALESCE(SUM(total_amount), 0) AS total
+    FROM orders
+    WHERE order_status != 'Cancelled'
+";
+
+$result = mysqli_query($conn, $sql);
+$row = mysqli_fetch_assoc($result);
+
+$total_sales = $row['total'];
+
+
+/*
+|--------------------------------------------------------------------------
+| TOTAL ORDERS
 |--------------------------------------------------------------------------
 */
 
 $sql = "
     SELECT COUNT(*) AS total
     FROM orders
-    WHERE order_status = 'Pending'
+    WHERE order_status != 'Cancelled'
 ";
 
 $result = mysqli_query($conn, $sql);
-
 $row = mysqli_fetch_assoc($result);
 
-$pending_orders = $row['total'];
+$total_orders = $row['total'];
 
 
 /*
 |--------------------------------------------------------------------------
-| PREPARING ORDERS
+| DELIVERED ORDERS
 |--------------------------------------------------------------------------
 */
 
 $sql = "
     SELECT COUNT(*) AS total
     FROM orders
-    WHERE order_status = 'Preparing'
+    WHERE order_status = 'Delivered'
 ";
 
 $result = mysqli_query($conn, $sql);
-
 $row = mysqli_fetch_assoc($result);
 
-$preparing_orders = $row['total'];
+$delivered_orders = $row['total'];
 
 
 /*
 |--------------------------------------------------------------------------
-| OUT FOR DELIVERY
-|--------------------------------------------------------------------------
-*/
-
-$sql = "
-    SELECT COUNT(*) AS total
-    FROM orders
-    WHERE order_status = 'Out for Delivery'
-";
-
-$result = mysqli_query($conn, $sql);
-
-$row = mysqli_fetch_assoc($result);
-
-$delivery_orders = $row['total'];
-
-
-/*
-|--------------------------------------------------------------------------
-| RECENT ORDERS
+| SALES RECORDS
 |--------------------------------------------------------------------------
 */
 
@@ -130,14 +96,16 @@ $sql = "
         order_id,
         customer_name,
         total_amount,
+        payment_method,
+        payment_status,
         order_status,
         order_date
     FROM orders
+    WHERE order_status != 'Cancelled'
     ORDER BY order_date DESC
-    LIMIT 5
 ";
 
-$recent_orders = mysqli_query($conn, $sql);
+$sales = mysqli_query($conn, $sql);
 
 ?>
 
@@ -154,7 +122,7 @@ $recent_orders = mysqli_query($conn, $sql);
         content="width=device-width, initial-scale=1.0">
 
     <title>
-        Admin Dashboard | Timeout Cafe
+        Sales Report | Timeout Cafe
     </title>
 
     <link
@@ -181,10 +149,10 @@ $recent_orders = mysqli_query($conn, $sql);
 
             <p>TIMEOUT CAFE</p>
 
-            <h1>Admin Dashboard</h1>
+            <h1>Sales Report</h1>
 
             <span>
-                Manage your cafe ordering system.
+                View and monitor cafe sales.
             </span>
 
         </div>
@@ -193,20 +161,20 @@ $recent_orders = mysqli_query($conn, $sql);
         <div class="admin-header-actions">
 
             <a
-                href="../index.php"
+                href="index.php"
                 class="visit-site-btn">
 
-                View Website
+                ← Dashboard
 
             </a>
 
-            <a
-                href="logout.php"
+            <button
+                onclick="window.print()"
                 class="admin-logout-btn">
 
-                Logout
+                🖨 Print Report
 
-            </a>
+            </button>
 
         </div>
 
@@ -214,62 +182,12 @@ $recent_orders = mysqli_query($conn, $sql);
 
 
 
-    <!-- STATISTICS -->
+    <!-- SALES STATISTICS -->
 
     <section class="admin-statistics">
 
 
-        <!-- TOTAL ORDERS -->
-
-        <div class="admin-stat-card">
-
-            <div class="stat-icon">
-                🛒
-            </div>
-
-            <div>
-
-                <span>
-                    Total Orders
-                </span>
-
-                <strong>
-                    <?php
-                    echo $total_orders;
-                    ?>
-                </strong>
-
-            </div>
-
-        </div>
-
-
-        <!-- CUSTOMERS -->
-
-        <div class="admin-stat-card">
-
-            <div class="stat-icon">
-                👥
-            </div>
-
-            <div>
-
-                <span>
-                    Customers
-                </span>
-
-                <strong>
-                    <?php
-                    echo $total_customers;
-                    ?>
-                </strong>
-
-            </div>
-
-        </div>
-
-
-        <!-- TODAY SALES -->
+        <!-- TODAY'S SALES -->
 
         <div class="admin-stat-card">
 
@@ -300,23 +218,79 @@ $recent_orders = mysqli_query($conn, $sql);
         </div>
 
 
-        <!-- PENDING -->
+        <!-- TOTAL SALES -->
 
         <div class="admin-stat-card">
 
             <div class="stat-icon">
-                ⏳
+                💵
             </div>
 
             <div>
 
                 <span>
-                    Pending Orders
+                    Total Sales
+                </span>
+
+                <strong>
+
+                    Rs.
+                    <?php
+                    echo number_format(
+                        $total_sales,
+                        2
+                    );
+                    ?>
+
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- TOTAL ORDERS -->
+
+        <div class="admin-stat-card">
+
+            <div class="stat-icon">
+                🛒
+            </div>
+
+            <div>
+
+                <span>
+                    Sales Orders
                 </span>
 
                 <strong>
                     <?php
-                    echo $pending_orders;
+                    echo $total_orders;
+                    ?>
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <!-- DELIVERED -->
+
+        <div class="admin-stat-card">
+
+            <div class="stat-icon">
+                ✅
+            </div>
+
+            <div>
+
+                <span>
+                    Delivered Orders
+                </span>
+
+                <strong>
+                    <?php
+                    echo $delivered_orders;
                     ?>
                 </strong>
 
@@ -328,203 +302,38 @@ $recent_orders = mysqli_query($conn, $sql);
 
 
 
-    <!-- ORDER STATUS -->
-
-    <section class="admin-status-section">
-
-        <h2>Order Status</h2>
-
-
-        <div class="admin-status-grid">
-
-
-            <div class="status-summary">
-
-                <span>
-                    Pending
-                </span>
-
-                <strong>
-                    <?php
-                    echo $pending_orders;
-                    ?>
-                </strong>
-
-            </div>
-
-
-            <div class="status-summary">
-
-                <span>
-                    Preparing
-                </span>
-
-                <strong>
-                    <?php
-                    echo $preparing_orders;
-                    ?>
-                </strong>
-
-            </div>
-
-
-            <div class="status-summary">
-
-                <span>
-                    Out for Delivery
-                </span>
-
-                <strong>
-                    <?php
-                    echo $delivery_orders;
-                    ?>
-                </strong>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-<!-- QUICK ACTIONS -->
-
-<section class="admin-quick-actions">
-
-    <h2>Quick Actions</h2>
-
-    <div class="quick-action-grid">
-
-
-        <!-- MANAGE ORDERS -->
-
-        <a
-            href="orders.php"
-            class="quick-action-card">
-
-            <div>
-                📦
-            </div>
-
-            <h3>
-                Manage Orders
-            </h3>
-
-            <p>
-                View and update customer orders.
-            </p>
-
-        </a>
-
-
-        <!-- MANAGE FOOD -->
-
-        <a
-            href="foods.php"
-            class="quick-action-card">
-
-            <div>
-                🍔
-            </div>
-
-            <h3>
-                Manage Food
-            </h3>
-
-            <p>
-                Add, edit, delete and manage
-                food items.
-            </p>
-
-        </a>
-
-
-        <!-- VIEW MENU -->
-
-        <a
-            href="../menu.php"
-            class="quick-action-card">
-
-            <div>
-                🍽️
-            </div>
-
-            <h3>
-                View Menu
-            </h3>
-
-            <p>
-                See the customer food menu.
-            </p>
-
-        </a>
-
-
-        <!-- SALES REPORT -->
-
-        <a
-            href="sales_report.php"
-            class="quick-action-card">
-
-            <div>
-                📊
-            </div>
-
-            <h3>
-                Manage Sales Report
-            </h3>
-
-            <p>
-                View sales, revenue and order reports.
-            </p>
-
-        </a>
-
-
-    </div>
-
-</section>
-
-
-    <!-- RECENT ORDERS -->
+    <!-- SALES DETAILS -->
 
     <section class="recent-orders-section">
+
 
         <div class="section-heading">
 
             <div>
 
-                <p>ORDER MANAGEMENT</p>
+                <p>SALES MANAGEMENT</p>
 
                 <h2>
-                    Recent Orders
+                    Sales Details
                 </h2>
 
             </div>
-
-
-            <a
-                href="orders.php">
-
-                View All Orders →
-
-            </a>
 
         </div>
 
 
         <?php if (
-            mysqli_num_rows($recent_orders) === 0
+            mysqli_num_rows($sales) === 0
         ): ?>
 
             <div class="no-recent-orders">
 
                 <h3>
-                    No Orders Yet
+                    No Sales Yet
                 </h3>
 
                 <p>
-                    Customer orders will appear here.
+                    Completed customer orders will appear here.
                 </p>
 
             </div>
@@ -553,15 +362,19 @@ $recent_orders = mysqli_query($conn, $sql);
                             </th>
 
                             <th>
-                                Status
+                                Payment
+                            </th>
+
+                            <th>
+                                Payment Status
+                            </th>
+
+                            <th>
+                                Order Status
                             </th>
 
                             <th>
                                 Date
-                            </th>
-
-                            <th>
-                                Action
                             </th>
 
                         </tr>
@@ -572,10 +385,8 @@ $recent_orders = mysqli_query($conn, $sql);
                     <tbody>
 
                         <?php while (
-                            $order =
-                            mysqli_fetch_assoc(
-                                $recent_orders
-                            )
+                            $sale =
+                            mysqli_fetch_assoc($sales)
                         ): ?>
 
                             <tr>
@@ -583,11 +394,9 @@ $recent_orders = mysqli_query($conn, $sql);
                                 <td>
 
                                     <strong>
-
                                         #<?php
-                                        echo $order['order_id'];
+                                        echo $sale['order_id'];
                                         ?>
-
                                     </strong>
 
                                 </td>
@@ -597,7 +406,7 @@ $recent_orders = mysqli_query($conn, $sql);
 
                                     <?php
                                     echo escape(
-                                        $order['customer_name']
+                                        $sale['customer_name']
                                     );
                                     ?>
 
@@ -611,12 +420,34 @@ $recent_orders = mysqli_query($conn, $sql);
                                         Rs.
                                         <?php
                                         echo number_format(
-                                            $order['total_amount'],
+                                            $sale['total_amount'],
                                             2
                                         );
                                         ?>
 
                                     </strong>
+
+                                </td>
+
+
+                                <td>
+
+                                    <?php
+                                    echo escape(
+                                        $sale['payment_method']
+                                    );
+                                    ?>
+
+                                </td>
+
+
+                                <td>
+
+                                    <?php
+                                    echo escape(
+                                        $sale['payment_status']
+                                    );
+                                    ?>
 
                                 </td>
 
@@ -630,18 +461,14 @@ $recent_orders = mysqli_query($conn, $sql);
                                             str_replace(
                                                 ' ',
                                                 '-',
-                                                $order[
-                                                    'order_status'
-                                                ]
+                                                $sale['order_status']
                                             )
                                         );
                                         ?>">
 
                                         <?php
                                         echo escape(
-                                            $order[
-                                                'order_status'
-                                            ]
+                                            $sale['order_status']
                                         );
                                         ?>
 
@@ -656,25 +483,10 @@ $recent_orders = mysqli_query($conn, $sql);
                                     echo date(
                                         'd M Y, h:i A',
                                         strtotime(
-                                            $order['order_date']
+                                            $sale['order_date']
                                         )
                                     );
                                     ?>
-
-                                </td>
-
-
-                                <td>
-
-                                    <a
-                                        href="order_details.php?order_id=<?php
-                                        echo $order['order_id'];
-                                        ?>"
-                                        class="admin-view-btn">
-
-                                        View
-
-                                    </a>
 
                                 </td>
 
@@ -690,10 +502,12 @@ $recent_orders = mysqli_query($conn, $sql);
 
         <?php endif; ?>
 
+
     </section>
 
 
 </main>
+
 
 </body>
 

@@ -594,3 +594,358 @@ gap:30px;
     }
 
 }
+
+/* =========================
+   ABOUT & CONTACT RESPONSIVE
+========================= */
+
+@media (max-width: 768px) {
+
+    .about-page {
+        padding: 50px 5%;
+    }
+
+    .about-container {
+        grid-template-columns: 1fr;
+        gap: 35px;
+    }
+
+    .about-image img {
+        height: 300px;
+    }
+
+    .about-content h1,
+    .contact-heading h1 {
+        font-size: 32px;
+    }
+
+    .about-features {
+        grid-template-columns: 1fr;
+        padding: 0 5%;
+    }
+
+    .contact-page {
+        padding: 50px 5%;
+    }
+
+    .contact-container {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .contact-form {
+        padding: 25px;
+    }
+}
+
+@media (max-width: 480px) {
+
+    .about-image img {
+        height: 240px;
+    }
+
+    .about-content h1,
+    .contact-heading h1 {
+        font-size: 28px;
+    }
+
+    .contact-form {
+        padding: 20px;
+    }
+
+    .contact-box {
+        padding: 15px;
+    }
+}
+
+/* =====================================================
+   ADMIN DASHBOARD RESPONSIVE
+===================================================== */
+
+
+/* ---------- TABLET ---------- */
+
+@media (max-width: 1000px) {
+
+    .admin-dashboard {
+        padding: 35px 5%;
+    }
+
+    /* Header */
+
+    .admin-dashboard-header {
+        gap: 20px;
+    }
+
+    .admin-dashboard-header h1 {
+        font-size: 30px;
+    }
+
+
+    /* Statistics */
+
+    .admin-statistics {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+
+    /* Quick Actions */
+
+    .quick-action-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+
+    /* Status */
+
+    .admin-status-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+}
+
+
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 700px) {
+
+    .admin-dashboard {
+        padding: 25px 4%;
+    }
+
+
+    /* Header */
+
+    .admin-dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-dashboard-header h1 {
+        font-size: 26px;
+    }
+
+    .admin-dashboard-header span {
+        font-size: 14px;
+    }
+
+    .admin-header-actions {
+        width: 100%;
+        display: flex;
+        gap: 10px;
+    }
+
+    .visit-site-btn,
+    .admin-logout-btn {
+        text-align: center;
+        flex: 1;
+    }
+
+
+    /* Statistics */
+
+    .admin-statistics {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .admin-stat-card {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+
+    /* Order Status */
+
+    .admin-status-section h2,
+    .admin-quick-actions h2 {
+        font-size: 22px;
+    }
+
+    .admin-status-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+
+    /* Quick Actions */
+
+    .quick-action-grid {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .quick-action-card {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+
+    /* Recent Orders */
+
+    .recent-orders-section {
+        padding: 20px;
+        overflow: hidden;
+    }
+
+    .section-heading {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .section-heading h2 {
+        font-size: 22px;
+    }
+
+    .recent-orders-table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .recent-orders-table {
+        min-width: 750px;
+    }
+
+}
+
+
+/* =====================================================
+   SALES REPORT RESPONSIVE
+===================================================== */
+
+
+/* ---------- TABLET ---------- */
+
+@media (max-width: 1000px) {
+
+    .sales-report-page {
+        padding: 35px 5%;
+    }
+
+    .sales-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .sales-report-header {
+        gap: 20px;
+    }
+
+}
+
+
+/* ---------- MOBILE ---------- */
+
+@media (max-width: 700px) {
+
+    .sales-report-page {
+        padding: 25px 4%;
+    }
+
+
+    /* Header */
+
+    .sales-report-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .sales-report-header h1 {
+        font-size: 26px;
+    }
+
+    .sales-report-header p {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .print-btn {
+        width: 100%;
+        text-align: center;
+    }
+
+
+    /* Sales Summary */
+
+    .sales-summary {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .sales-card {
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .sales-card h2 {
+        font-size: 20px;
+    }
+
+
+    /* Sales Table */
+
+    .sales-table-container {
+        padding: 18px;
+        overflow: hidden;
+    }
+
+    .sales-table-header h2 {
+        font-size: 22px;
+    }
+
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .sales-table {
+        min-width: 850px;
+    }
+
+    .sales-table th,
+    .sales-table td {
+        padding: 11px;
+        font-size: 13px;
+    }
+
+
+    /* Back Button */
+
+    .sales-back {
+        text-align: center;
+    }
+
+}
+
+
+/* ---------- SMALL MOBILE ---------- */
+
+@media (max-width: 400px) {
+
+    .admin-dashboard,
+    .sales-report-page {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .admin-dashboard-header h1,
+    .sales-report-header h1 {
+        font-size: 23px;
+    }
+
+    .admin-header-actions {
+        flex-direction: column;
+    }
+
+    .sales-card {
+        padding: 18px;
+    }
+
+    .sales-icon {
+        width: 45px;
+        height: 45px;
+        font-size: 20px;
+    }
+
+}
