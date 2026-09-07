@@ -188,6 +188,24 @@ CREATE TABLE `order_items` (
 -- Dumping data for table `order_items`
 --
 
+--Table structure for payment  
+CREATE TABLE payment (
+    payment_id INT AUTO_INCREMENT PRIMARY KEY,
+    order_id INT NOT NULL,
+    payment_method VARCHAR(30) NOT NULL,
+    payment_status VARCHAR(30) NOT NULL DEFAULT 'Pending',
+    payment_reference VARCHAR(255) DEFAULT NULL,
+    payment_gateway VARCHAR(30) DEFAULT NULL,
+    payment_amount DECIMAL(10,2) NOT NULL,
+    payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (order_id)
+        REFERENCES orders(order_id)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+);
+
+
 INSERT INTO `order_items` (`order_item_id`, `order_id`, `food_id`, `food_name`, `quantity`, `price`, `total_price`) VALUES
 (24, 22, 1, 'Chicken Pizza', 1, 450.00, 450.00),
 (25, 23, 1, 'Chicken Pizza', 3, 450.00, 1350.00),

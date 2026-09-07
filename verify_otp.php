@@ -447,7 +447,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 <p class="auth-switch">
 
                     OTP is valid for
-                    <strong>5 minutes</strong>.
+                    <strong> 30 second </strong>.
 
                 </p>
 
