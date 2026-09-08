@@ -949,3 +949,59 @@ gap:30px;
     }
 
 }
+
+/* =========================================
+   CHECKOUT MAP RESPONSIVE
+========================================= */
+
+@media (max-width: 800px) {
+
+    .checkout-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .checkout-summary-card {
+        position: static;
+    }
+
+    #delivery-map {
+        height: 320px;
+    }
+
+}
+
+
+@media (max-width: 600px) {
+
+    .checkout-page {
+        padding: 35px 5%;
+    }
+
+    .checkout-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .checkout-header h1 {
+        font-size: 30px;
+    }
+
+    .checkout-form-card,
+    .checkout-summary-card {
+        padding: 22px;
+    }
+
+    #delivery-map {
+        height: 280px;
+    }
+
+    .map-search-box input {
+        min-width: 0;
+    }
+
+    .location-suggestion {
+        font-size: 12px;
+        padding: 11px;
+    }
+
+}

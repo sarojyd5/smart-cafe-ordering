@@ -2728,6 +2728,55 @@ footer hr{
     font-size: 19px;
 }
 
+/* =========================================
+   GOOGLE MAPS ADDRESS AUTOCOMPLETE
+========================================= */
+
+.address-autocomplete-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.address-autocomplete-wrapper input {
+    width: 100%;
+    padding: 13px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-family: inherit;
+    font-size: 14px;
+    outline: none;
+    transition: 0.3s;
+}
+
+.address-autocomplete-wrapper input:focus {
+    border-color: #b85c38;
+    box-shadow: 0 0 0 3px rgba(184, 92, 56, 0.08);
+}
+
+.address-help {
+    display: block;
+    margin-top: 7px;
+    color: #888;
+    font-size: 12px;
+}
+
+.address-suggestions {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    z-index: 1000;
+    overflow: hidden;
+}
+
+.address-suggestions:empty {
+    display: none;
+}
 
 /* =========================================
    ORDER SUCCESS
