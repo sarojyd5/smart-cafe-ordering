@@ -28,6 +28,7 @@ $sql = "
         customer_name,
         customer_phone,
         delivery_address,
+        delivery_map_link,
         order_note,
         subtotal,
         delivery_charge,
@@ -427,6 +428,33 @@ if ($current_index === false) {
                 </strong>
 
             </div>
+
+
+            <?php if (
+                !empty($order['delivery_map_link'])
+            ): ?>
+
+                <div class="delivery-info-row">
+
+                    <span>Location</span>
+
+                    <a
+                        href="<?php
+                        echo escape(
+                            $order['delivery_map_link']
+                        );
+                        ?>"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="map-view-btn">
+
+                        View on Google Maps &#8599;
+
+                    </a>
+
+                </div>
+
+            <?php endif; ?>
 
 
             <?php if (

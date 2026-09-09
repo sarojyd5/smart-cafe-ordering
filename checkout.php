@@ -1016,6 +1016,12 @@ $customer_name = $_SESSION['customer_name'] ?? '';
 
     </style>
 
+    <link
+        rel="stylesheet"
+        href="assets/js/leaflet/leaflet.css">
+
+    <script src="assets/js/leaflet/leaflet.js"></script>
+
 </head>
 
 
@@ -1156,9 +1162,7 @@ $customer_name = $_SESSION['customer_name'] ?? '';
 
 
 
-                <!-- =========================================
-                     DELIVERY ADDRESS
-                ========================================== -->
+                <!-- ADDRESS -->
 
                 <div class="checkout-form-group">
 
@@ -1167,117 +1171,43 @@ $customer_name = $_SESSION['customer_name'] ?? '';
                     </label>
 
 
-                    <!-- MAP -->
+                    <textarea
+                        id="delivery_address"
+                        name="delivery_address"
+                        rows="4"
+                        maxlength="500"
+                        required
+                        placeholder="Enter your complete delivery address"></textarea>
 
-                    <div class="map-wrapper">
-
-                        <div
-                            id="delivery-map"
-                        ></div>
-
-
-                        <!-- MAP SEARCH -->
-
-                        <div class="map-search-box">
-
-                            <input
-                                type="text"
-                                id="map-search-input"
-
-                                placeholder="Search delivery location..."
-
-                                autocomplete="off"
-                            >
-
-
-                            <button
-                                type="button"
-                                id="map-search-btn"
-
-                                title="Search"
-                            >
-                                🔍
-                            </button>
-
-
-                            <div
-                                id="map-search-results"
-
-                                class="map-search-results"
-
-                                style="display:none;"
-                            ></div>
-
-                        </div>
+                </div>
 
                     </div>
 
+                    <small
+                        id="address-error"
+                        class="field-error">
+                    </small>
 
-                    <!-- SELECTED ADDRESS -->
-
-                    <div
-                        id="selected-address-display"
-
-                        class="selected-address-display"
-
-                        style="display:none;"
-                    >
-
-                        <span class="map-icon">
-                            📍
-                        </span>
-
-                        <span
-                            id="selected-address-text"
-                        ></span>
-
-                    </div>
+                </div>
 
 
-                    <!-- CURRENT LOCATION -->
+                <input
+                    type="hidden"
+                    id="delivery_map_link"
+                    name="delivery_map_link"
+                    value="">
 
-                    <button
-                        type="button"
+                <input
+                    type="hidden"
+                    id="delivery_lat"
+                    name="delivery_lat"
+                    value="">
 
-                        id="locate-current-btn"
-
-                        class="use-current-location-btn"
-                    >
-
-                        🧭
-                        Use My Current Location
-
-                    </button>
-
-
-                    <!-- ADDRESS TEXT -->
-
-                    <div class="address-suggest-wrapper">
-
-                        <textarea
-                            id="delivery_address"
-
-                            name="delivery_address"
-
-                            rows="3"
-
-                            maxlength="500"
-
-                            required
-
-                            placeholder="Enter your complete delivery address (e.g. street, city)"
-                        ></textarea>
-
-
-                        <div
-                            id="address-suggest-results"
-
-                            class="address-suggest-results"
-
-                            style="display:none;"
-                        ></div>
-
-                    </div>
+                <input
+                    type="hidden"
+                    id="delivery_lng"
+                    name="delivery_lng"
+                    value="">
 
 
                     <small
@@ -1628,77 +1558,14 @@ const phoneInput =
 const phoneError =
     document.getElementById("phone-error");
 
-const addressInput =
-    document.getElementById("delivery_address");
 
-const addressError =
-    document.getElementById("address-error");
+/*
+|--------------------------------------------------------------------------
+| FULL NAME LIVE VALIDATION
+|--------------------------------------------------------------------------
+*/
 
-const locateBtn =
-    document.getElementById("locate-current-btn");
-
-const mapSearchInput =
-    document.getElementById("map-search-input");
-
-const mapSearchBtn =
-    document.getElementById("map-search-btn");
-
-const mapSearchResults =
-    document.getElementById("map-search-results");
-
-const addressSuggestResults =
-    document.getElementById("address-suggest-results");
-
-const mapLinkInput =
-    document.getElementById("delivery_map_link");
-
-const latInput =
-    document.getElementById("delivery_lat");
-
-const lngInput =
-    document.getElementById("delivery_lng");
-
-const addressDisplay =
-    document.getElementById(
-        "selected-address-display"
-    );
-
-const addressDisplayText =
-    document.getElementById(
-        "selected-address-text"
-    );
-
-
-/* =========================================================
-   MAP VARIABLES
-========================================================= */
-
-let deliveryMap = null;
-
-let deliveryMarker = null;
-
-let skipAddressSearch = false;
-
-let addressSearchTimer = null;
-
-let mapSearchTimer = null;
-
-
-/* =========================================================
-   CREATE MAP
-========================================================= */
-
-window.addEventListener("load", function () {
-
-    const mapElement =
-        document.getElementById(
-            "delivery-map"
-        );
-
-    if (!mapElement) {
-        return;
-    }
-
+nameInput.addEventListener("input", function () {
 
     /*
      * Kathmandu default location
@@ -2804,8 +2671,8 @@ checkoutForm.addEventListener(
             return false;
 
         }
-
     }
+
 );
 
 </script>

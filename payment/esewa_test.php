@@ -43,6 +43,14 @@ $signature = base64_encode($hash);
 
 <body>
 
+<h2>eSewa Sandbox Test</h2>
+
+<p>
+    <strong>eSewa ID:</strong> 9711111111 / 9711111112 / 9711111113 / 9711111114<br>
+    <strong>Password:</strong> Nepal@123<br>
+    <strong>OTP / Token:</strong> 123456
+</p>
+
 <form
     action="https://rc-epay.esewa.com.np/api/epay/main/v2/form"
     method="POST"
