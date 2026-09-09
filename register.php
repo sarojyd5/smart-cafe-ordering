@@ -20,6 +20,12 @@ $email = "";
 $phone = "";
 
 
+/*
+|--------------------------------------------------------------------------
+| FORM SUBMISSION
+|--------------------------------------------------------------------------
+*/
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $full_name = trim($_POST["full_name"] ?? "");
@@ -40,17 +46,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
         $errors[] = "Full name is required.";
 
-   } elseif (strlen($full_name) < 3) {
+    } elseif (strlen($full_name) < 3) {
 
-    $errors[] =
-        "Full name must contain at least 3 characters.";
+        $errors[] = "Full name must contain at least 3 characters.";
 
-} elseif (!preg_match('/^[A-Za-z ]+$/', $full_name)) {
+    } elseif (!preg_match('/^[A-Za-z ]+$/', $full_name)) {
 
-    $errors[] =
-        "Full name can contain only letters and spaces.";
+        $errors[] = "Full name can contain only letters and spaces.";
 
-}
+    } elseif (!preg_match('/^[A-Za-z]/', $full_name)) {
+
+        $errors[] = "Full name must start with a letter.";
+
+    }
+
 
     /*
     |--------------------------------------------------------------------------
@@ -60,13 +69,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($email === "") {
 
-        $errors[] =
-            "Email address is required.";
+        $errors[] = "Email address is required.";
 
     } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
-        $errors[] =
-            "Please enter a valid email address.";
+        $errors[] = "Please enter a valid email address.";
 
     }
 
@@ -77,16 +84,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     |--------------------------------------------------------------------------
     */
 
-   if ($phone === "") {
+    if ($phone === "") {
 
-    $errors[] = "Phone number is required.";
+        $errors[] = "Phone number is required.";
 
-} elseif (!preg_match('/^(98|97)[0-9]{8}$/', $phone)) {
+    } elseif (!preg_match('/^(98|97)[0-9]{8}$/', $phone)) {
 
-    $errors[] =
-        "Phone number must be exactly 10 digits and start with 97 or 98.";
+        $errors[] =
+            "Phone number must be exactly 10 digits and start with 97 or 98.";
 
-}
+    }
 
 
     /*
@@ -97,13 +104,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($password === "") {
 
-        $errors[] =
-            "Password is required.";
+        $errors[] = "Password is required.";
 
     } elseif (strlen($password) < 6) {
 
-        $errors[] =
-            "Password must contain at least 6 characters.";
+        $errors[] = "Password must contain at least 6 characters.";
 
     }
 
@@ -116,8 +121,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if ($password !== $confirm_password) {
 
-        $errors[] =
-            "Passwords do not match.";
+        $errors[] = "Passwords do not match.";
 
     }
 
@@ -139,16 +143,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             LIMIT 1
         ";
 
-        $stmt = mysqli_prepare(
-            $conn,
-            $check_sql
-        );
-
+        $stmt = mysqli_prepare($conn, $check_sql);
 
         if (!$stmt) {
 
-            $errors[] =
-                "Database error. Please try again.";
+            $errors[] = "Database error. Please try again.";
 
         } else {
 
@@ -160,20 +159,16 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             mysqli_stmt_execute($stmt);
 
-            $result =
-                mysqli_stmt_get_result($stmt);
+            $result = mysqli_stmt_get_result($stmt);
 
-            $existing_customer =
-                mysqli_fetch_assoc($result);
+            $existing_customer = mysqli_fetch_assoc($result);
 
             mysqli_stmt_close($stmt);
 
 
             if ($existing_customer) {
 
-                if (
-                    (int)$existing_customer['email_verified'] === 1
-                ) {
+                if ((int)$existing_customer['email_verified'] === 1) {
 
                     $errors[] =
                         "An account with this email already exists.";
@@ -200,40 +195,25 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     if (empty($errors)) {
 
-        /*
-         * Generate 6-digit OTP
-         */
-
-        $otp = (string) random_int(
-            100000,
-            999999
-        );
+        // Generate 6-digit OTP
+        $otp = (string) random_int(100000, 999999);
 
 
-        /*
-         * Hash OTP before storing it
-         */
-
+        // Hash OTP
         $otp_hash = password_hash(
             $otp,
             PASSWORD_DEFAULT
         );
 
 
-        /*
-         * OTP expires after 5 minutes
-         */
-
+        // OTP expires after 5 minutes
         $otp_expires = date(
             "Y-m-d H:i:s",
             time() + (5 * 60)
         );
 
 
-        /*
-         * Hash customer password
-         */
-
+        // Hash password
         $hashed_password = password_hash(
             $password,
             PASSWORD_DEFAULT
@@ -241,10 +221,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
 
         /*
-         |--------------------------------------------------------------------------
-         | INSERT CUSTOMER
-         |--------------------------------------------------------------------------
-         */
+        |--------------------------------------------------------------------------
+        | INSERT CUSTOMER
+        |--------------------------------------------------------------------------
+        */
 
         $insert_sql = "
             INSERT INTO customers
@@ -263,16 +243,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         ";
 
 
-        $stmt = mysqli_prepare(
-            $conn,
-            $insert_sql
-        );
+        $stmt = mysqli_prepare($conn, $insert_sql);
 
 
         if (!$stmt) {
 
-            $errors[] =
-                "Database error. Please try again.";
+            $errors[] = "Database error. Please try again.";
 
         } else {
 
@@ -290,187 +266,179 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
             if (mysqli_stmt_execute($stmt)) {
 
-                $customer_id =
-                    mysqli_insert_id($conn);
-
+                $customer_id = mysqli_insert_id($conn);
 
                 mysqli_stmt_close($stmt);
 
 
                 /*
-                 |--------------------------------------------------------------------------
-                 | SEND OTP USING PHPMailer
-                 |--------------------------------------------------------------------------
-                 */
-/*
-|--------------------------------------------------------------------------
-| SEND OTP USING PHPMailer
-|--------------------------------------------------------------------------
-*/
+                |--------------------------------------------------------------------------
+                | SEND OTP USING PHPMailer
+                |--------------------------------------------------------------------------
+                */
 
-$mail = new PHPMailer(true);
+                $mail = new PHPMailer(true);
 
-try {
+                try {
 
-    /*
-     * SMTP configuration
-     */
+                    /*
+                    | SMTP CONFIGURATION
+                    */
 
-    $mail->isSMTP();
+                    $mail->isSMTP();
 
-    $mail->Host = SMTP_HOST;
+                    $mail->Host = SMTP_HOST;
 
-    $mail->SMTPAuth = true;
+                    $mail->SMTPAuth = true;
 
-    $mail->Username = SMTP_USERNAME;
+                    $mail->Username = SMTP_USERNAME;
 
-    $mail->Password = SMTP_PASSWORD;
+                    $mail->Password = SMTP_PASSWORD;
 
-    $mail->SMTPSecure =
-        PHPMailer::ENCRYPTION_STARTTLS;
+                    $mail->SMTPSecure =
+                        PHPMailer::ENCRYPTION_STARTTLS;
 
-    $mail->Port = SMTP_PORT;
+                    $mail->Port = SMTP_PORT;
 
 
-    /*
-     * Sender
-     */
+                    /*
+                    | SENDER
+                    */
 
-    $mail->setFrom(
-        MAIL_FROM_EMAIL,
-        MAIL_FROM_NAME
-    );
-
-
-    /*
-     * Customer email
-     */
-
-    $mail->addAddress(
-        $email,
-        $full_name
-    );
+                    $mail->setFrom(
+                        MAIL_FROM_EMAIL,
+                        MAIL_FROM_NAME
+                    );
 
 
-    /*
-     * Email format
-     */
+                    /*
+                    | CUSTOMER EMAIL
+                    */
 
-    $mail->isHTML(false);
-
-
-    /*
-     * Subject
-     */
-
-    $mail->Subject =
-        "Timeout Cafe - Your Registration OTP";
+                    $mail->addAddress(
+                        $email,
+                        $full_name
+                    );
 
 
-    /*
-     * Message
-     */
+                    /*
+                    | EMAIL FORMAT
+                    */
 
-    $mail->Body =
-        "Hello " . $full_name . ",\r\n\r\n"
-        . "Thank you for registering at Timeout Cafe.\r\n\r\n"
-        . "Your verification OTP is: "
-        . $otp
-        . "\r\n\r\n"
-        . "This OTP is valid for 5 minutes.\r\n\r\n"
-        . "Please do not share this OTP with anyone.\r\n\r\n"
-        . "If you did not request this registration, "
-        . "please ignore this email.\r\n\r\n"
-        . "Regards,\r\n"
-        . "Timeout Cafe";
+                    $mail->isHTML(false);
 
 
-    /*
-     * Send email
-     */
+                    /*
+                    | SUBJECT
+                    */
 
-    $mail->send();
-
-
-    /*
-     |--------------------------------------------------------------------------
-     | STORE OTP REGISTRATION SESSION
-     |--------------------------------------------------------------------------
-     */
-
-    $_SESSION['otp_customer_id'] =
-        $customer_id;
-
-    $_SESSION['otp_email'] =
-        $email;
+                    $mail->Subject =
+                        "Timeout Cafe - Your Registration OTP";
 
 
-    /*
-     |--------------------------------------------------------------------------
-     | REDIRECT TO OTP PAGE
-     |--------------------------------------------------------------------------
-     */
+                    /*
+                    | MESSAGE
+                    */
 
-    header(
-        "Location: verify_otp.php"
-    );
-
-    exit();
-
-
-} catch (Exception $e) {
-
-    /*
-     |--------------------------------------------------------------------------
-     | EMAIL FAILED
-     |--------------------------------------------------------------------------
-     */
-
-    error_log(
-        "PHPMailer Error: "
-        . $mail->ErrorInfo
-    );
+                    $mail->Body =
+                        "Hello " . $full_name . ",\r\n\r\n"
+                        . "Thank you for registering at Timeout Cafe.\r\n\r\n"
+                        . "Your verification OTP is: "
+                        . $otp
+                        . "\r\n\r\n"
+                        . "This OTP is valid for 5 minutes.\r\n\r\n"
+                        . "Please do not share this OTP with anyone.\r\n\r\n"
+                        . "If you did not request this registration, "
+                        . "please ignore this email.\r\n\r\n"
+                        . "Regards,\r\n"
+                        . "Timeout Cafe";
 
 
-    /*
-     * Delete unverified customer
-     */
+                    /*
+                    | SEND EMAIL
+                    */
 
-    $delete_sql = "
-        DELETE FROM customers
-        WHERE customer_id = ?
-    ";
-
-    $delete_stmt =
-        mysqli_prepare(
-            $conn,
-            $delete_sql
-        );
+                    $mail->send();
 
 
-    if ($delete_stmt) {
+                    /*
+                    |--------------------------------------------------------------------------
+                    | STORE OTP SESSION
+                    |--------------------------------------------------------------------------
+                    */
 
-        mysqli_stmt_bind_param(
-            $delete_stmt,
-            "i",
-            $customer_id
-        );
+                    $_SESSION['otp_customer_id'] =
+                        $customer_id;
 
-        mysqli_stmt_execute(
-            $delete_stmt
-        );
-
-        mysqli_stmt_close(
-            $delete_stmt
-        );
-
-    }
+                    $_SESSION['otp_email'] =
+                        $email;
 
 
-    $errors[] =
-        "Unable to send OTP email. Please check your email configuration and try again.";
+                    /*
+                    |--------------------------------------------------------------------------
+                    | REDIRECT
+                    |--------------------------------------------------------------------------
+                    */
 
-}
+                    header(
+                        "Location: verify_otp.php"
+                    );
+
+                    exit();
+
+
+                } catch (Exception $e) {
+
+                    /*
+                    | EMAIL FAILED
+                    */
+
+                    error_log(
+                        "PHPMailer Error: " .
+                        $mail->ErrorInfo
+                    );
+
+
+                    /*
+                    | DELETE UNVERIFIED CUSTOMER
+                    */
+
+                    $delete_sql = "
+                        DELETE FROM customers
+                        WHERE customer_id = ?
+                    ";
+
+
+                    $delete_stmt =
+                        mysqli_prepare(
+                            $conn,
+                            $delete_sql
+                        );
+
+
+                    if ($delete_stmt) {
+
+                        mysqli_stmt_bind_param(
+                            $delete_stmt,
+                            "i",
+                            $customer_id
+                        );
+
+                        mysqli_stmt_execute(
+                            $delete_stmt
+                        );
+
+                        mysqli_stmt_close(
+                            $delete_stmt
+                        );
+
+                    }
+
+
+                    $errors[] =
+                        "Unable to send OTP email. Please check your email configuration and try again.";
+
+                }
 
             } else {
 
@@ -516,6 +484,48 @@ try {
         rel="stylesheet"
         href="assets/css/responsive.css">
 
+
+    <style>
+
+        /*
+        |--------------------------------------------------------------------------
+        | FIELD ERROR
+        |--------------------------------------------------------------------------
+        */
+
+        .field-error {
+            display: block;
+            margin-top: 7px;
+            color: #d93025;
+            font-size: 13px;
+            min-height: 18px;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | INVALID INPUT
+        |--------------------------------------------------------------------------
+        */
+
+        .input-error {
+            border: 1px solid #d93025 !important;
+            outline: none;
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALID INPUT
+        |--------------------------------------------------------------------------
+        */
+
+        .input-valid {
+            border: 1px solid #28a745 !important;
+        }
+
+    </style>
+
 </head>
 
 
@@ -555,11 +565,9 @@ try {
                     <?php foreach ($errors as $error): ?>
 
                         <p>
-
                             <?php
                             echo escape($error);
                             ?>
-
                         </p>
 
                     <?php endforeach; ?>
@@ -572,8 +580,11 @@ try {
             <form
                 method="POST"
                 action=""
-                class="auth-form">
+                class="auth-form"
+                id="register-form">
 
+
+                <!-- FULL NAME -->
 
                 <div class="form-group">
 
@@ -582,19 +593,27 @@ try {
                     </label>
 
 
-<input
-    type="text"
-    id="full_name"
-    name="full_name"
-    value="<?php
-    echo escape($full_name);
-    ?>"
-    placeholder="Enter your full name"
-    required>
+                    <input
+                        type="text"
+                        id="full_name"
+                        name="full_name"
+                        value="<?php
+                        echo escape($full_name);
+                        ?>"
+                        placeholder="Enter your full name"
+                        autocomplete="name"
+                        required>
 
-<small id="name-error" class="field-error"></small>
+
+                    <small
+                        id="name-error"
+                        class="field-error">
+                    </small>
+
                 </div>
 
+
+                <!-- EMAIL -->
 
                 <div class="form-group">
 
@@ -611,10 +630,13 @@ try {
                         echo escape($email);
                         ?>"
                         placeholder="Enter your email"
+                        autocomplete="email"
                         required>
 
                 </div>
 
+
+                <!-- PHONE -->
 
                 <div class="form-group">
 
@@ -622,81 +644,111 @@ try {
                         Phone Number*
                     </label>
 
-<input
-    type="tel"
-    id="phone"
-    name="phone"
-    value="<?php
-    echo escape($phone);
-    ?>"
-    placeholder="98XXXXXXXX"
-    maxlength="10"
-    inputmode="numeric"
-    required>
 
-<small id="phone-error" class="field-error"></small>
+                    <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        value="<?php
+                        echo escape($phone);
+                        ?>"
+                        placeholder="98XXXXXXXX"
+                        maxlength="10"
+                        inputmode="numeric"
+                        autocomplete="tel"
+                        required>
+
+
+                    <small
+                        id="phone-error"
+                        class="field-error">
+                    </small>
+
                 </div>
 
-<div class="form-group">
 
-    <label for="password">
-        Password*
-    </label>
+                <!-- PASSWORD -->
 
-    <div class="password-wrapper">
+                <div class="form-group">
 
-        <input
-            type="password"
-            id="password"
-            name="password"
-            placeholder="At least 6 characters"
-            required>
+                    <label for="password">
+                        Password*
+                    </label>
 
-        <button
-            type="button"
-            class="password-toggle"
-            onclick="togglePassword('password', 'password-eye')">
 
-            <span id="password-eye">👁</span>
+                    <div class="password-wrapper">
 
-        </button>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            placeholder="At least 6 characters"
+                            required>
 
-    </div>
 
-</div>
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            onclick="togglePassword(
+                                'password',
+                                'password-eye'
+                            )">
 
-               <div class="form-group">
+                            <span id="password-eye">
+                                👁
+                            </span>
 
-    <label for="confirm_password">
-        Confirm Password*
-    </label>
+                        </button>
 
-    <div class="password-wrapper">
+                    </div>
 
-        <input
-            type="password"
-            id="confirm_password"
-            name="confirm_password"
-            placeholder="Re-enter your password"
-            required>
+                </div>
 
-        <button
-            type="button"
-            class="password-toggle"
-            onclick="togglePassword('confirm_password', 'confirm-password-eye')">
 
-            <span id="confirm-password-eye">👁</span>
+                <!-- CONFIRM PASSWORD -->
 
-        </button>
+                <div class="form-group">
 
-    </div>
+                    <label for="confirm_password">
+                        Confirm Password*
+                    </label>
 
-</div>
 
+                    <div class="password-wrapper">
+
+                        <input
+                            type="password"
+                            id="confirm_password"
+                            name="confirm_password"
+                            placeholder="Re-enter your password"
+                            required>
+
+
+                        <button
+                            type="button"
+                            class="password-toggle"
+                            onclick="togglePassword(
+                                'confirm_password',
+                                'confirm-password-eye'
+                            )">
+
+                            <span id="confirm-password-eye">
+                                👁
+                            </span>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+
+                <!-- SUBMIT -->
 
                 <button
                     type="submit"
-                    class="auth-submit">
+                    class="auth-submit"
+                    id="submit-btn">
 
                     Create Account
 
@@ -726,13 +778,29 @@ try {
 
 <?php include "includes/footer.php"; ?>
 
+
 <script>
 
-const nameInput = document.getElementById("full_name");
-const nameError = document.getElementById("name-error");
+/*
+|--------------------------------------------------------------------------
+| ELEMENTS
+|--------------------------------------------------------------------------
+*/
 
-const phoneInput = document.getElementById("phone");
-const phoneError = document.getElementById("phone-error");
+const nameInput =
+    document.getElementById("full_name");
+
+const nameError =
+    document.getElementById("name-error");
+
+const phoneInput =
+    document.getElementById("phone");
+
+const phoneError =
+    document.getElementById("phone-error");
+
+const registerForm =
+    document.getElementById("register-form");
 
 
 /*
@@ -743,25 +811,85 @@ const phoneError = document.getElementById("phone-error");
 
 nameInput.addEventListener("input", function () {
 
-    // Allow letters and spaces only
-    this.value = this.value.replace(/[^A-Za-z ]/g, "");
+    const name = this.value;
 
-    const name = this.value.trim();
+    const trimmedName = name.trim();
 
-    if (name === "") {
+
+    /*
+    | Clear previous classes
+    */
+
+    this.classList.remove(
+        "input-error",
+        "input-valid"
+    );
+
+
+    /*
+    | Empty
+    */
+
+    if (trimmedName === "") {
 
         nameError.textContent = "";
 
-    } else if (name.length < 3) {
+        return;
+    }
+
+
+    /*
+    | FIRST CHARACTER MUST BE A LETTER
+    */
+
+    if (!/^[A-Za-z]/.test(trimmedName)) {
 
         nameError.textContent =
-            "Name must contain at least 3 characters and only letters.";
+            "Full name must start with a letter.";
 
-    } else {
+        this.classList.add("input-error");
 
-        nameError.textContent = "";
-
+        return;
     }
+
+
+    /*
+    | ONLY LETTERS AND SPACES
+    */
+
+    if (!/^[A-Za-z ]+$/.test(name)) {
+
+        nameError.textContent =
+            "Full name can contain only letters and spaces.";
+
+        this.classList.add("input-error");
+
+        return;
+    }
+
+
+    /*
+    | MINIMUM LENGTH
+    */
+
+    if (trimmedName.length < 3) {
+
+        nameError.textContent =
+            "Name must contain at least 3 characters.";
+
+        this.classList.add("input-error");
+
+        return;
+    }
+
+
+    /*
+    | VALID
+    */
+
+    nameError.textContent = "";
+
+    this.classList.add("input-valid");
 
 });
 
@@ -774,21 +902,41 @@ nameInput.addEventListener("input", function () {
 
 phoneInput.addEventListener("input", function () {
 
-    // Numbers only
+    /*
+    | Allow numbers only
+    */
+
     this.value = this.value
         .replace(/[^0-9]/g, "")
         .slice(0, 10);
 
+
     const phone = this.value;
 
+
+    this.classList.remove(
+        "input-error",
+        "input-valid"
+    );
+
+
+    /*
+    | Empty
+    */
 
     if (phone === "") {
 
         phoneError.textContent = "";
 
+        return;
     }
 
-    else if (
+
+    /*
+    | FIRST TWO DIGITS
+    */
+
+    if (
         phone.length >= 2 &&
         !phone.startsWith("97") &&
         !phone.startsWith("98")
@@ -797,22 +945,109 @@ phoneInput.addEventListener("input", function () {
         phoneError.textContent =
             "Phone number must start with 97 or 98.";
 
+        this.classList.add("input-error");
+
+        return;
     }
 
-    else if (phone.length < 10) {
+
+    /*
+    | LESS THAN 10 DIGITS
+    */
+
+    if (phone.length < 10) {
 
         phoneError.textContent =
-            "Phone number must start with 98 or 97 and contain 10 digits.";
+            "Phone number must contain exactly 10 digits.";
 
+        this.classList.add("input-error");
+
+        return;
     }
 
-    else {
 
-        phoneError.textContent = "";
+    /*
+    | VALID PHONE
+    */
+
+    phoneError.textContent = "";
+
+    this.classList.add("input-valid");
+
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| FORM SUBMIT VALIDATION
+|--------------------------------------------------------------------------
+*/
+
+registerForm.addEventListener("submit", function (event) {
+
+    const name =
+        nameInput.value.trim();
+
+    const phone =
+        phoneInput.value.trim();
+
+
+    let valid = true;
+
+
+    /*
+    | Validate name
+    */
+
+    if (
+        name === "" ||
+        !/^[A-Za-z ]+$/.test(name) ||
+        !/^[A-Za-z]/.test(name) ||
+        name.length < 3
+    ) {
+
+        nameError.textContent =
+            "Please enter a valid full name starting with a letter.";
+
+        nameInput.classList.add("input-error");
+
+        valid = false;
+    }
+
+
+    /*
+    | Validate phone
+    */
+
+    if (!/^(97|98)[0-9]{8}$/.test(phone)) {
+
+        phoneError.textContent =
+            "Phone number must be exactly 10 digits and start with 97 or 98.";
+
+        phoneInput.classList.add("input-error");
+
+        valid = false;
+    }
+
+
+    /*
+    | Stop form if invalid
+    */
+
+    if (!valid) {
+
+        event.preventDefault();
 
     }
 
 });
+
+
+/*
+|--------------------------------------------------------------------------
+| PASSWORD SHOW / HIDE
+|--------------------------------------------------------------------------
+*/
 
 function togglePassword(inputId, eyeId) {
 
@@ -821,6 +1056,7 @@ function togglePassword(inputId, eyeId) {
 
     const eye =
         document.getElementById(eyeId);
+
 
     if (passwordInput.type === "password") {
 
@@ -838,11 +1074,7 @@ function togglePassword(inputId, eyeId) {
 
 }
 
-
-
 </script>
-
-
 
 
 </body>
