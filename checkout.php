@@ -7,44 +7,36 @@ require_once "includes/functions.php";
 requireCustomerLogin();
 
 
-// --------------------------------------------------
+// ==========================================================
 // CHECK CART
-// --------------------------------------------------
+// ==========================================================
 
 if (
     !isset($_SESSION['cart']) ||
     empty($_SESSION['cart'])
 ) {
-
     header("Location: cart.php");
     exit();
-
 }
 
 $cart = $_SESSION['cart'];
 
 
-// --------------------------------------------------
+// ==========================================================
 // GET CART ITEMS
-// --------------------------------------------------
+// ==========================================================
 
 $cart_items = [];
 $subtotal = 0;
 
-
-// Get food information one by one
 foreach ($cart as $food_id => $quantity) {
 
-    $food_id = (int) $food_id;
-    $quantity = (int) $quantity;
+    $food_id = (int)$food_id;
+    $quantity = (int)$quantity;
 
-    if (
-        $food_id <= 0 ||
-        $quantity <= 0
-    ) {
+    if ($food_id <= 0 || $quantity <= 0) {
         continue;
     }
-
 
     $sql = "
         SELECT
@@ -58,10 +50,7 @@ foreach ($cart as $food_id => $quantity) {
         LIMIT 1
     ";
 
-    $stmt = mysqli_prepare(
-        $conn,
-        $sql
-    );
+    $stmt = mysqli_prepare($conn, $sql);
 
     mysqli_stmt_bind_param(
         $stmt,
@@ -75,6 +64,8 @@ foreach ($cart as $food_id => $quantity) {
 
     $food = mysqli_fetch_assoc($result);
 
+    mysqli_stmt_close($stmt);
+
 
     if (!$food) {
         continue;
@@ -82,16 +73,13 @@ foreach ($cart as $food_id => $quantity) {
 
 
     // Don't allow unavailable food
-    if (
-        $food['availability'] !== 'available'
-    ) {
+    if ($food['availability'] !== 'available') {
         continue;
     }
 
 
     $item_total =
-        (float) $food['price'] * $quantity;
-
+        (float)$food['price'] * $quantity;
 
     $subtotal += $item_total;
 
@@ -102,7 +90,7 @@ foreach ($cart as $food_id => $quantity) {
 
         'food_name' => $food['food_name'],
 
-        'price' => (float) $food['price'],
+        'price' => (float)$food['price'],
 
         'image' => $food['image'],
 
@@ -111,24 +99,25 @@ foreach ($cart as $food_id => $quantity) {
         'total' => $item_total
 
     ];
-
 }
 
 
-// If no valid items remain
+// ==========================================================
+// IF NO VALID ITEMS
+// ==========================================================
+
 if (empty($cart_items)) {
 
     $_SESSION['cart'] = [];
 
     header("Location: cart.php");
     exit();
-
 }
 
 
-// --------------------------------------------------
+// ==========================================================
 // DELIVERY CHARGE
-// --------------------------------------------------
+// ==========================================================
 
 $delivery_charge = 50;
 
@@ -136,9 +125,9 @@ $total_amount =
     $subtotal + $delivery_charge;
 
 
-// --------------------------------------------------
+// ==========================================================
 // CUSTOMER
-// --------------------------------------------------
+// ==========================================================
 
 $customer_name =
     $_SESSION['customer_name'] ?? '';
@@ -162,19 +151,997 @@ $customer_name =
     </title>
 
 
-    <link
-        rel="stylesheet"
-        href="assets/css/style.css">
+    <!-- ==================================================
+         LEAFLET
+    ================================================== -->
 
     <link
         rel="stylesheet"
-        href="assets/css/responsive.css">
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin="">
 
-    <link
-        rel="stylesheet"
-        href="assets/js/leaflet/leaflet.css">
 
-    <script src="assets/js/leaflet/leaflet.js"></script>
+    <style>
+
+    /* =====================================================
+       GENERAL
+    ===================================================== */
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+
+        background: #faf6f2;
+
+        color: #3f3029;
+
+        font-family:
+            Arial,
+            Helvetica,
+            sans-serif;
+    }
+
+
+    /* =====================================================
+       CHECKOUT PAGE
+    ===================================================== */
+
+    .checkout-page {
+
+        width: 100%;
+
+        max-width: 1200px;
+
+        margin: 0 auto;
+
+        padding: 45px 20px 60px;
+    }
+
+
+    /* =====================================================
+       HEADER
+    ===================================================== */
+
+    .checkout-header {
+
+        display: flex;
+
+        justify-content: space-between;
+
+        align-items: center;
+
+        gap: 20px;
+
+        margin-bottom: 35px;
+    }
+
+
+    .checkout-header p {
+
+        margin: 0 0 6px;
+
+        color: #b85c38;
+
+        font-size: 12px;
+
+        font-weight: bold;
+
+        letter-spacing: 2px;
+    }
+
+
+    .checkout-header h1 {
+
+        margin: 0 0 8px;
+
+        color: #3f3029;
+
+        font-size: 38px;
+    }
+
+
+    .checkout-header span {
+
+        color: #777;
+
+        font-size: 15px;
+    }
+
+
+    .checkout-back-btn {
+
+        text-decoration: none;
+
+        color: #5c3d2e;
+
+        font-weight: bold;
+
+        transition: 0.2s;
+    }
+
+
+    .checkout-back-btn:hover {
+
+        color: #b85c38;
+    }
+
+
+    /* =====================================================
+       LAYOUT
+    ===================================================== */
+
+    .checkout-layout {
+
+        display: grid;
+
+        grid-template-columns:
+            minmax(0, 1.4fr)
+            minmax(320px, 1fr);
+
+        gap: 30px;
+
+        align-items: start;
+    }
+
+
+    /* =====================================================
+       CARDS
+    ===================================================== */
+
+    .checkout-form-card,
+    .checkout-summary-card {
+
+        background: #ffffff;
+
+        padding: 28px;
+
+        border-radius: 14px;
+
+        box-shadow:
+            0 5px 25px rgba(0, 0, 0, 0.06);
+    }
+
+
+    .checkout-form-card h2,
+    .checkout-summary-card h2 {
+
+        margin-top: 0;
+
+        margin-bottom: 25px;
+
+        color: #5c3d2e;
+
+        font-size: 24px;
+    }
+
+
+    /* =====================================================
+       FORM
+    ===================================================== */
+
+    .checkout-form-group {
+
+        margin-bottom: 21px;
+    }
+
+
+    .checkout-form-group > label {
+
+        display: block;
+
+        margin-bottom: 8px;
+
+        color: #3f3029;
+
+        font-size: 15px;
+
+        font-weight: 600;
+    }
+
+
+    .checkout-form-group label span {
+
+        color: #888;
+
+        font-size: 12px;
+
+        font-weight: normal;
+    }
+
+
+    .checkout-form-group input[type="text"],
+    .checkout-form-group input[type="tel"],
+    .checkout-form-group textarea {
+
+        width: 100%;
+
+        padding: 13px 14px;
+
+        border: 1px solid #d9d2cd;
+
+        border-radius: 8px;
+
+        background: #ffffff;
+
+        color: #333;
+
+        font-family: inherit;
+
+        font-size: 14px;
+
+        outline: none;
+
+        transition:
+            border-color 0.2s,
+            box-shadow 0.2s;
+    }
+
+
+    .checkout-form-group input[type="text"]:focus,
+    .checkout-form-group input[type="tel"]:focus,
+    .checkout-form-group textarea:focus {
+
+        border-color: #b85c38;
+
+        box-shadow:
+            0 0 0 3px rgba(184, 92, 56, 0.10);
+    }
+
+
+    .checkout-form-group textarea {
+
+        min-height: 80px;
+
+        resize: vertical;
+
+        line-height: 1.5;
+    }
+
+
+    /* =====================================================
+       FIELD ERROR
+    ===================================================== */
+
+    .field-error {
+
+        display: block;
+
+        min-height: 17px;
+
+        margin-top: 5px;
+
+        color: #c0392b;
+
+        font-size: 12px;
+    }
+
+
+    /* =====================================================
+       LOCATION SECTION
+    ===================================================== */
+
+    .location-container {
+
+        position: relative;
+
+        width: 100%;
+    }
+
+
+    /* MAP */
+
+    .map-container {
+
+        position: relative;
+
+        width: 100%;
+
+        height: 330px;
+
+        margin-bottom: 12px;
+
+        overflow: hidden;
+
+        border: 1px solid #ddd;
+
+        border-radius: 12px;
+
+        background: #eeeeee;
+
+        box-shadow:
+            0 4px 15px rgba(0, 0, 0, 0.07);
+    }
+
+
+    #map {
+
+        width: 100%;
+
+        height: 100%;
+    }
+
+
+    /* =====================================================
+       SEARCH BOX
+    ===================================================== */
+
+    .location-search-wrapper {
+
+        position: relative;
+
+        width: 100%;
+
+        margin-bottom: 6px;
+    }
+
+
+    #locationSearch {
+
+        width: 100%;
+
+        height: 48px;
+
+        padding:
+            0 48px 0 15px;
+
+        border: 1px solid #d8d0cb;
+
+        border-radius: 9px;
+
+        background: #ffffff;
+
+        color: #333;
+
+        font-family: inherit;
+
+        font-size: 14px;
+
+        outline: none;
+
+        box-shadow:
+            0 2px 8px rgba(0, 0, 0, 0.04);
+
+        transition: 0.2s;
+    }
+
+
+    #locationSearch:focus {
+
+        border-color: #b85c38;
+
+        box-shadow:
+            0 0 0 3px rgba(184, 92, 56, 0.10);
+    }
+
+
+    #locationSearch::placeholder {
+
+        color: #999;
+    }
+
+
+    /* SEARCH BUTTON */
+
+    .search-location-btn {
+
+        position: absolute;
+
+        top: 6px;
+
+        right: 6px;
+
+        width: 36px;
+
+        height: 36px;
+
+        border: none;
+
+        border-radius: 7px;
+
+        background: #b85c38;
+
+        color: #ffffff;
+
+        font-size: 16px;
+
+        cursor: pointer;
+
+        transition: 0.2s;
+    }
+
+
+    .search-location-btn:hover {
+
+        background: #8f452c;
+
+        transform: scale(1.03);
+    }
+
+
+    /* =====================================================
+       SUGGESTIONS
+    ===================================================== */
+
+    .address-suggestions {
+
+        position: absolute;
+
+        left: 0;
+
+        right: 0;
+
+        top: 378px;
+
+        z-index: 2000;
+
+        display: none;
+
+        overflow: hidden;
+
+        border: 1px solid #ddd;
+
+        border-radius: 9px;
+
+        background: #ffffff;
+
+        box-shadow:
+            0 8px 25px rgba(0, 0, 0, 0.14);
+    }
+
+
+    .address-suggestion {
+
+        padding: 12px 14px;
+
+        border-bottom: 1px solid #eeeeee;
+
+        color: #333;
+
+        font-size: 13px;
+
+        line-height: 1.45;
+
+        cursor: pointer;
+
+        transition: background 0.2s;
+    }
+
+
+    .address-suggestion:last-child {
+
+        border-bottom: none;
+    }
+
+
+    .address-suggestion:hover {
+
+        background: #faf3ed;
+    }
+
+
+    .suggestion-icon {
+
+        margin-right: 6px;
+
+        color: #b85c38;
+    }
+
+
+    /* LOADING */
+
+    .address-loading {
+
+        padding: 13px 15px;
+
+        color: #777;
+
+        font-size: 13px;
+
+        text-align: center;
+    }
+
+
+    .address-no-result {
+
+        padding: 13px 15px;
+
+        color: #777;
+
+        font-size: 13px;
+    }
+
+
+    /* =====================================================
+       CURRENT LOCATION BUTTON
+    ===================================================== */
+
+    .current-location-btn {
+
+        display: inline-flex;
+
+        align-items: center;
+
+        justify-content: center;
+
+        gap: 7px;
+
+        margin-top: 9px;
+
+        padding: 9px 14px;
+
+        border: 1px solid #d8d0cb;
+
+        border-radius: 7px;
+
+        background: #ffffff;
+
+        color: #5c3d2e;
+
+        font-family: inherit;
+
+        font-size: 13px;
+
+        font-weight: 600;
+
+        cursor: pointer;
+
+        transition: 0.2s;
+    }
+
+
+    .current-location-btn:hover {
+
+        border-color: #b85c38;
+
+        background: #faf3ed;
+
+        color: #b85c38;
+    }
+
+
+    /* =====================================================
+       ADDRESS TEXTAREA
+    ===================================================== */
+
+    .selected-address-wrapper {
+
+        margin-top: 12px;
+    }
+
+
+    .selected-address-label {
+
+        display: block;
+
+        margin-bottom: 7px;
+
+        color: #3f3029;
+
+        font-size: 13px;
+
+        font-weight: 600;
+    }
+
+
+    #delivery_address {
+
+        min-height: 80px;
+
+        resize: vertical;
+    }
+
+
+    #delivery_address.location-selected {
+
+        border-color: #6a994e;
+
+        box-shadow:
+            0 0 0 3px rgba(106, 153, 78, 0.10);
+    }
+
+
+    .address-help {
+
+        display: block;
+
+        margin-top: 7px;
+
+        color: #777;
+
+        font-size: 12px;
+
+        line-height: 1.5;
+    }
+
+
+    .location-error {
+
+        display: block;
+
+        margin-top: 6px;
+
+        color: #c0392b;
+
+        font-size: 12px;
+    }
+
+
+    /* =====================================================
+       PAYMENT
+    ===================================================== */
+
+    .payment-methods {
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 10px;
+    }
+
+
+    .payment-method-card {
+
+        display: flex;
+
+        align-items: center;
+
+        gap: 10px;
+
+        padding: 13px;
+
+        border: 1px solid #ddd;
+
+        border-radius: 8px;
+
+        cursor: pointer;
+
+        transition: 0.2s;
+    }
+
+
+    .payment-method-card:hover {
+
+        border-color: #b85c38;
+
+        background: #fffaf6;
+    }
+
+
+    .payment-method-card input {
+
+        width: auto;
+
+        accent-color: #b85c38;
+    }
+
+
+    .payment-method-card span {
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 3px;
+    }
+
+
+    .payment-method-card strong {
+
+        color: #3f3029;
+
+        font-size: 13px;
+    }
+
+
+    .payment-method-card small {
+
+        color: #777;
+
+        font-size: 11px;
+    }
+
+
+    /* =====================================================
+       PLACE ORDER BUTTON
+    ===================================================== */
+
+    .place-order-btn {
+
+        width: 100%;
+
+        border: none;
+
+        padding: 14px;
+
+        border-radius: 8px;
+
+        background: #b85c38;
+
+        color: #ffffff;
+
+        font-size: 15px;
+
+        font-weight: bold;
+
+        cursor: pointer;
+
+        transition: 0.25s;
+    }
+
+
+    .place-order-btn:hover {
+
+        background: #8f452c;
+
+        transform: translateY(-1px);
+    }
+
+
+    .place-order-btn:disabled {
+
+        opacity: 0.6;
+
+        cursor: not-allowed;
+
+        transform: none;
+    }
+
+
+    /* =====================================================
+       ORDER SUMMARY
+    ===================================================== */
+
+    .checkout-summary-card {
+
+        position: sticky;
+
+        top: 25px;
+    }
+
+
+    .checkout-item {
+
+        display: flex;
+
+        justify-content: space-between;
+
+        gap: 15px;
+
+        padding: 14px 0;
+
+        border-bottom: 1px solid #eeeeee;
+    }
+
+
+    .checkout-item div {
+
+        display: flex;
+
+        flex-direction: column;
+
+        gap: 5px;
+    }
+
+
+    .checkout-item strong {
+
+        color: #3f3029;
+    }
+
+
+    .checkout-item span {
+
+        color: #777;
+
+        font-size: 13px;
+    }
+
+
+    .checkout-total-row {
+
+        display: flex;
+
+        justify-content: space-between;
+
+        padding: 12px 0;
+
+        color: #666;
+    }
+
+
+    .checkout-grand-total {
+
+        display: flex;
+
+        justify-content: space-between;
+
+        margin-top: 10px;
+
+        padding-top: 18px;
+
+        border-top: 1px solid #ddd;
+
+        color: #5c3d2e;
+
+        font-size: 19px;
+    }
+
+
+    /* =====================================================
+       LEAFLET
+    ===================================================== */
+
+    .leaflet-control-zoom {
+
+        border: none !important;
+
+        box-shadow:
+            0 3px 10px rgba(0, 0, 0, 0.15) !important;
+    }
+
+
+    .leaflet-control-zoom a {
+
+        color: #5c3d2e !important;
+
+        background: #ffffff !important;
+    }
+
+
+    .leaflet-control-zoom a:hover {
+
+        background: #faf3ed !important;
+    }
+
+
+    .leaflet-popup-content-wrapper {
+
+        border-radius: 10px;
+    }
+
+
+    .leaflet-popup-content {
+
+        font-family: Arial, sans-serif;
+
+        font-size: 13px;
+    }
+
+
+    /* =====================================================
+       RESPONSIVE
+    ===================================================== */
+
+    @media (max-width: 900px) {
+
+        .checkout-layout {
+
+            grid-template-columns: 1fr;
+        }
+
+
+        .checkout-summary-card {
+
+            position: static;
+        }
+
+    }
+
+
+    @media (max-width: 700px) {
+
+        .checkout-page {
+
+            padding:
+                30px 15px 50px;
+        }
+
+
+        .checkout-header {
+
+            align-items: flex-start;
+
+            flex-direction: column;
+
+            margin-bottom: 25px;
+        }
+
+
+        .checkout-header h1 {
+
+            font-size: 32px;
+        }
+
+
+        .checkout-form-card,
+        .checkout-summary-card {
+
+            padding: 22px;
+
+            border-radius: 12px;
+        }
+
+
+        .map-container {
+
+            height: 300px;
+        }
+
+
+        .address-suggestions {
+
+            top: 348px;
+        }
+
+    }
+
+
+    @media (max-width: 500px) {
+
+        .checkout-page {
+
+            padding:
+                25px 10px 40px;
+        }
+
+
+        .checkout-header h1 {
+
+            font-size: 28px;
+        }
+
+
+        .checkout-header span {
+
+            font-size: 13px;
+        }
+
+
+        .checkout-form-card,
+        .checkout-summary-card {
+
+            padding: 18px;
+        }
+
+
+        .map-container {
+
+            height: 260px;
+        }
+
+
+        .address-suggestions {
+
+            top: 308px;
+        }
+
+
+        #locationSearch {
+
+            height: 46px;
+
+            font-size: 13px;
+        }
+
+
+        .current-location-btn {
+
+            width: 100%;
+        }
+
+
+        .checkout-item {
+
+            font-size: 13px;
+        }
+
+    }
+
+    </style>
 
 </head>
 
@@ -185,13 +1152,17 @@ $customer_name =
 <main class="checkout-page">
 
 
-    <!-- HEADER -->
+    <!-- ==================================================
+         CHECKOUT HEADER
+    ================================================== -->
 
     <section class="checkout-header">
 
         <div>
 
-            <p>TIMEOUT CAFE</p>
+            <p>
+                TIMEOUT CAFE
+            </p>
 
             <h1>
                 Checkout
@@ -216,12 +1187,16 @@ $customer_name =
 
 
 
-    <!-- CHECKOUT CONTENT -->
+    <!-- ==================================================
+         CHECKOUT LAYOUT
+    ================================================== -->
 
     <section class="checkout-layout">
 
 
-        <!-- CUSTOMER FORM -->
+        <!-- ==================================================
+             CUSTOMER FORM
+        ================================================== -->
 
         <div class="checkout-form-card">
 
@@ -237,7 +1212,9 @@ $customer_name =
                 id="checkoutForm">
 
 
-                <!-- CUSTOMER NAME -->
+                <!-- ==========================================
+                     FULL NAME
+                =========================================== -->
 
                 <div class="checkout-form-group">
 
@@ -253,14 +1230,13 @@ $customer_name =
                         id="customer_name"
                         name="customer_name"
                         value="<?php
-                        echo escape(
-                            $customer_name
-                        );
+                        echo escape($customer_name);
                         ?>"
                         required
                         maxlength="100"
-                        placeholder="Enter your full name"
-                        autocomplete="name">
+                        autocomplete="name"
+                        placeholder="Enter your full name">
+
 
                     <small
                         id="name-error"
@@ -271,7 +1247,9 @@ $customer_name =
 
 
 
-                <!-- PHONE -->
+                <!-- ==========================================
+                     PHONE
+                =========================================== -->
 
                 <div class="checkout-form-group">
 
@@ -290,8 +1268,9 @@ $customer_name =
                         maxlength="10"
                         minlength="10"
                         inputmode="numeric"
-                        placeholder="98XXXXXXXX"
-                        autocomplete="tel">
+                        autocomplete="tel"
+                        placeholder="98XXXXXXXX">
+
 
                     <small
                         id="phone-error"
@@ -302,7 +1281,9 @@ $customer_name =
 
 
 
-                <!-- DELIVERY ADDRESS WITH MAP -->
+                <!-- ==========================================
+                     DELIVERY LOCATION
+                =========================================== -->
 
                 <div class="checkout-form-group">
 
@@ -313,95 +1294,123 @@ $customer_name =
                     </label>
 
 
-                    <div class="map-wrapper">
+                    <div
+                        class="location-container">
+
+
+                        <!-- MAP -->
+
                         <div
-                            id="delivery-map"
-                            class="delivery-map"
-                            style="width:100%;height:350px;">
+                            class="map-container">
+
+                            <div id="map"></div>
+
                         </div>
-                        <div class="map-search-box">
+
+
+
+                        <!-- SEARCH -->
+
+                        <div
+                            class="location-search-wrapper">
+
+
                             <input
                                 type="text"
-                                id="map-search-input"
+                                id="locationSearch"
                                 placeholder="Search delivery location..."
                                 autocomplete="off">
+
+
                             <button
                                 type="button"
-                                id="map-search-btn"
-                                title="Search">&#128269;</button>
-                            <div
-                                id="map-search-results"
-                                class="map-search-results"
-                                style="display:none;">
-                            </div>
+                                id="searchLocationBtn"
+                                class="search-location-btn"
+                                title="Search location">
+
+                                🔍
+
+                            </button>
+
+
                         </div>
-                    </div>
-
-                    <div id="selected-address-display" class="selected-address-display" style="display:none;">
-                        <span class="map-icon">&#128205;</span>
-                        <span id="selected-address-text"></span>
-                    </div>
 
 
-                    <button
-                        type="button"
-                        id="locate-current-btn"
-                        class="use-current-location-btn">
 
-                        <span class="locate-icon">&#128506;</span>
-
-                        Use My Current Location
-
-                    </button>
-
-
-                    <div class="address-suggest-wrapper">
-
-                        <textarea
-                            id="delivery_address"
-                            name="delivery_address"
-                            rows="3"
-                            maxlength="500"
-                            required
-                            placeholder="Enter your complete delivery address (e.g. street, city)"></textarea>
+                        <!-- SUGGESTIONS -->
 
                         <div
-                            id="address-suggest-results"
-                            class="address-suggest-results"
-                            style="display:none;">
+                            id="addressSuggestions"
+                            class="address-suggestions">
                         </div>
 
-                    </div>
 
-                    <small
-                        id="address-error"
-                        class="field-error">
-                    </small>
+
+                        <!-- CURRENT LOCATION -->
+
+                        <button
+                            type="button"
+                            id="currentLocationBtn"
+                            class="current-location-btn">
+
+                            📍
+                            Use My Current Location
+
+                        </button>
+
+
+
+                        <!-- SELECTED ADDRESS -->
+
+                        <div
+                            class="selected-address-wrapper">
+
+
+                            <label
+                                for="delivery_address"
+                                class="selected-address-label">
+
+                                Selected Delivery Address
+
+                            </label>
+
+
+                            <textarea
+                                id="delivery_address"
+                                name="delivery_address"
+                                maxlength="500"
+                                required
+                                placeholder="Search for your delivery location above, then select a suggestion."><?php
+                                echo "";
+                                ?></textarea>
+
+
+                            <small
+                                class="address-help">
+
+                                Search for your street, area or nearby location and select a suggestion.
+
+                            </small>
+
+
+                            <small
+                                id="location-error"
+                                class="location-error">
+                            </small>
+
+
+                        </div>
+
+
+                    </div>
 
                 </div>
 
 
-                <input
-                    type="hidden"
-                    id="delivery_map_link"
-                    name="delivery_map_link"
-                    value="">
 
-                <input
-                    type="hidden"
-                    id="delivery_lat"
-                    name="delivery_lat"
-                    value="">
-
-                <input
-                    type="hidden"
-                    id="delivery_lng"
-                    name="delivery_lng"
-                    value="">
-
-
-
-                <!-- ORDER NOTE -->
+                <!-- ==========================================
+                     ORDER NOTE
+                =========================================== -->
 
                 <div class="checkout-form-group">
 
@@ -427,25 +1436,33 @@ $customer_name =
 
 
 
-                <!-- PAYMENT METHOD -->
+                <!-- ==========================================
+                     PAYMENT
+                =========================================== -->
 
                 <div class="checkout-form-group">
 
                     <label>
+
                         Payment Method
+
                     </label>
 
 
                     <div class="payment-methods">
 
 
-                        <label class="payment-method-card">
+                        <!-- CASH -->
+
+                        <label
+                            class="payment-method-card">
 
                             <input
                                 type="radio"
                                 name="payment_method"
                                 value="Cash on Delivery"
                                 checked>
+
 
                             <span>
 
@@ -463,12 +1480,16 @@ $customer_name =
 
 
 
-                        <label class="payment-method-card">
+                        <!-- ESEWA -->
+
+                        <label
+                            class="payment-method-card">
 
                             <input
                                 type="radio"
                                 name="payment_method"
                                 value="eSewa">
+
 
                             <span>
 
@@ -491,7 +1512,9 @@ $customer_name =
 
 
 
-                <!-- PLACE ORDER -->
+                <!-- ==========================================
+                     PLACE ORDER
+                =========================================== -->
 
                 <button
                     type="submit"
@@ -510,7 +1533,9 @@ $customer_name =
 
 
 
-        <!-- ORDER SUMMARY -->
+        <!-- ==================================================
+             ORDER SUMMARY
+        ================================================== -->
 
         <div class="checkout-summary-card">
 
@@ -613,7 +1638,7 @@ $customer_name =
 
 
 
-            <!-- DELIVERY CHARGE -->
+            <!-- DELIVERY -->
 
             <div class="checkout-total-row">
 
@@ -638,7 +1663,7 @@ $customer_name =
 
 
 
-            <!-- GRAND TOTAL -->
+            <!-- TOTAL -->
 
             <div class="checkout-grand-total">
 
@@ -672,13 +1697,22 @@ $customer_name =
 
 
 
+<!-- ========================================================
+     LEAFLET JAVASCRIPT
+========================================================= -->
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    crossorigin="">
+</script>
+
+
+
 <script>
 
-/*
-|--------------------------------------------------------------------------
-| GET ELEMENTS
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   ELEMENTS
+========================================================= */
 
 const checkoutForm =
     document.getElementById("checkoutForm");
@@ -695,1014 +1729,912 @@ const phoneInput =
 const phoneError =
     document.getElementById("phone-error");
 
-const addressInput =
+const locationSearch =
+    document.getElementById("locationSearch");
+
+const searchLocationBtn =
+    document.getElementById("searchLocationBtn");
+
+const addressSuggestions =
+    document.getElementById("addressSuggestions");
+
+const deliveryAddress =
     document.getElementById("delivery_address");
 
-const locateBtn =
-    document.getElementById("locate-current-btn");
+const locationError =
+    document.getElementById("location-error");
 
-const addressSuggestResults =
-    document.getElementById("address-suggest-results");
-
-const mapLinkInput =
-    document.getElementById("delivery_map_link");
-
-const latInput =
-    document.getElementById("delivery_lat");
-
-const lngInput =
-    document.getElementById("delivery_lng");
-
-const addressDisplay =
-    document.getElementById("selected-address-display");
-
-const addressDisplayText =
-    document.getElementById("selected-address-text");
+const currentLocationBtn =
+    document.getElementById("currentLocationBtn");
 
 
-/*
-|--------------------------------------------------------------------------
-| LEAFLET INTERACTIVE MAP
-|--------------------------------------------------------------------------
-*/
 
-window.addEventListener("load", function () {
+/* =========================================================
+   NAME VALIDATION
+========================================================= */
 
-    L.Icon.Default.imagePath =
-        "assets/js/leaflet/images";
+nameInput.addEventListener(
+    "input",
+    function () {
 
-    const mapEl =
-        document.getElementById("delivery-map");
+        this.value =
+            this.value.replace(
+                /[^A-Za-z ]/g,
+                ""
+            );
 
-    if (!mapEl) return;
 
-    const deliveryMap =
-        L.map("delivery-map").setView(
-            [27.6463616, 85.3381417],
-            14
+        const name =
+            this.value.trim();
+
+
+        if (name === "") {
+
+            nameError.textContent = "";
+
+            return;
+        }
+
+
+        if (name.length < 3) {
+
+            nameError.textContent =
+                "Name must contain at least 3 characters.";
+
+            return;
+        }
+
+
+        nameError.textContent = "";
+
+    }
+);
+
+
+
+/* =========================================================
+   PHONE VALIDATION
+========================================================= */
+
+phoneInput.addEventListener(
+    "input",
+    function () {
+
+        this.value =
+            this.value
+                .replace(
+                    /[^0-9]/g,
+                    ""
+                )
+                .slice(0, 10);
+
+
+        const phone =
+            this.value;
+
+
+        if (phone === "") {
+
+            phoneError.textContent = "";
+
+            return;
+        }
+
+
+        if (
+            phone.length >= 2 &&
+            !phone.startsWith("97") &&
+            !phone.startsWith("98")
+        ) {
+
+            phoneError.textContent =
+                "Phone number must start with 97 or 98.";
+
+            return;
+        }
+
+
+        if (phone.length < 10) {
+
+            phoneError.textContent =
+                "Phone number must contain exactly 10 digits.";
+
+            return;
+        }
+
+
+        phoneError.textContent = "";
+
+    }
+);
+
+
+
+/* =========================================================
+   MAP
+   Default location: Kathmandu Valley
+========================================================= */
+
+const map =
+    L.map("map").setView(
+        [27.7172, 85.3240],
+        13
+    );
+
+
+/* =========================================================
+   OPENSTREETMAP TILES
+========================================================= */
+
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        maxZoom: 19,
+
+        attribution:
+            '&copy; OpenStreetMap contributors'
+    }
+).addTo(map);
+
+
+
+/* =========================================================
+   MARKER
+========================================================= */
+
+let selectedMarker = null;
+
+let selectedLatitude = null;
+
+let selectedLongitude = null;
+
+
+
+/* =========================================================
+   CREATE / MOVE MARKER
+========================================================= */
+
+function setMarker(
+    latitude,
+    longitude,
+    addressText = ""
+) {
+
+    selectedLatitude =
+        latitude;
+
+    selectedLongitude =
+        longitude;
+
+
+    if (selectedMarker) {
+
+        selectedMarker.setLatLng(
+            [latitude, longitude]
         );
 
-    L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-            attribution:
-                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-            maxZoom: 19
-        }
-    ).addTo(deliveryMap);
-
-
-    let deliveryMarker = null;
-
-
-    function updateMapLink(lat, lng) {
-
-        const googleUrl =
-            "https://www.google.com/maps/search/?api=1&query="
-            + lat + "," + lng;
-
-        mapLinkInput.value = googleUrl;
-
     }
 
+    else {
 
-    function reverseGeocode(lat, lng) {
-
-        const url =
-            "https://nominatim.openstreetmap.org/reverse?format=json&lat="
-            + lat + "&lon=" + lng
-            + "&addressdetails=1";
-
-        fetch(url)
-            .then(function (response) {
-                return response.json();
-            })
-            .then(function (data) {
-
-                if (data && data.display_name) {
-
-                    const address =
-                        data.display_name;
-
-                    addressInput.value = address;
-
-                    addressDisplay.style.display = "flex";
-                    addressDisplayText.textContent = address;
-
-                    updateMapLink(lat, lng);
-
+        selectedMarker =
+            L.marker(
+                [latitude, longitude],
+                {
+                    draggable: true
                 }
+            ).addTo(map);
 
-            })
-            .catch(function () {
 
-                updateMapLink(lat, lng);
+        selectedMarker.on(
+            "dragend",
+            function () {
 
-            });
+                const position =
+                    selectedMarker.getLatLng();
+
+                reverseGeocode(
+                    position.lat,
+                    position.lng
+                );
+
+            }
+        );
 
     }
 
 
-    deliveryMap.on("click", function (e) {
+    selectedMarker.bindPopup(
+        "<strong>📍 Delivery Location</strong>"
+    );
 
-        const lat =
-            e.latlng.lat.toFixed(7);
 
-        const lng =
-            e.latlng.lng.toFixed(7);
+    if (addressText !== "") {
 
-        latInput.value = lat;
-        lngInput.value = lng;
+        deliveryAddress.value =
+            addressText;
 
-        if (deliveryMarker) {
+        deliveryAddress.classList.add(
+            "location-selected"
+        );
 
-            deliveryMap.removeLayer(
-                deliveryMarker
-            );
+        locationError.textContent = "";
 
-        }
+    }
 
-        deliveryMarker = L.marker(
-            [lat, lng],
-            { draggable: true }
-        ).addTo(deliveryMap);
 
-        deliveryMarker.bindPopup(
-            "Delivery location",
-            { offset: [0, -30] }
-        ).openPopup();
+    map.setView(
+        [latitude, longitude],
+        16
+    );
 
-        deliveryMarker.on("dragend", function () {
+}
 
-            const pos =
-                deliveryMarker.getLatLng();
 
-            latInput.value = pos.lat.toFixed(7);
-            lngInput.value = pos.lng.toFixed(7);
 
-            skipForward = true;
+/* =========================================================
+   MAP CLICK
+========================================================= */
 
-            reverseGeocode(
-                pos.lat,
-                pos.lng
-            );
+map.on(
+    "click",
+    function (event) {
 
-        });
+        const latitude =
+            event.latlng.lat;
+
+        const longitude =
+            event.latlng.lng;
+
+
+        setMarker(
+            latitude,
+            longitude
+        );
+
 
         reverseGeocode(
-            parseFloat(lat),
-            parseFloat(lng)
+            latitude,
+            longitude
         );
 
-    });
+    }
+);
 
 
-    /*
-    |--------------------------------------------------------------------------
-    | MAP SEARCH BOX
-    |--------------------------------------------------------------------------
-    */
 
-    const mapSearchInput =
-        document.getElementById("map-search-input");
+/* =========================================================
+   REVERSE GEOCODING
+   Converts coordinates → address
+========================================================= */
 
-    const mapSearchBtn =
-        document.getElementById("map-search-btn");
+async function reverseGeocode(
+    latitude,
+    longitude
+) {
 
-    const mapSearchResults =
-        document.getElementById("map-search-results");
-
-    let searchTimer = null;
+    deliveryAddress.value =
+        "Finding address...";
 
 
-    function placeSearchMarker(lat, lng, label) {
+    try {
 
-        deliveryMap.setView([lat, lng], 16);
+        const url =
+            "https://nominatim.openstreetmap.org/reverse" +
+            "?format=json" +
+            "&lat=" + encodeURIComponent(latitude) +
+            "&lon=" + encodeURIComponent(longitude) +
+            "&zoom=18" +
+            "&addressdetails=1";
 
-        latInput.value = lat.toFixed(7);
-        lngInput.value = lng.toFixed(7);
 
-        if (deliveryMarker) {
+        const response =
+            await fetch(url, {
+                headers: {
+                    "Accept":
+                        "application/json"
+                }
+            });
 
-            deliveryMap.removeLayer(
-                deliveryMarker
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Unable to find address."
             );
 
         }
 
-        deliveryMarker = L.marker(
-            [lat, lng],
-            { draggable: true }
-        ).addTo(deliveryMap);
 
-        deliveryMarker.bindPopup(
-            "Delivery location",
-            { offset: [0, -30] }
-        ).openPopup();
+        const data =
+            await response.json();
 
-        deliveryMarker.on("dragend", function () {
 
-            const pos =
-                deliveryMarker.getLatLng();
+        const address =
+            data.display_name || "";
 
-            latInput.value = pos.lat.toFixed(7);
-            lngInput.value = pos.lng.toFixed(7);
 
-            skipForward = true;
+        if (address !== "") {
 
-            reverseGeocode(
-                pos.lat,
-                pos.lng
+            deliveryAddress.value =
+                address;
+
+            deliveryAddress.classList.add(
+                "location-selected"
             );
 
-        });
+            locationError.textContent = "";
 
-        addressInput.value = label;
+        }
 
-        addressDisplay.style.display = "flex";
-        addressDisplayText.textContent = label;
+        else {
 
-        skipForward = true;
+            deliveryAddress.value = "";
 
-        updateMapLink(lat, lng);
+            locationError.textContent =
+                "Address could not be found. Please enter it manually.";
+
+        }
 
     }
 
+    catch (error) {
 
-    function searchMapLocations(query) {
+        deliveryAddress.value = "";
+
+        locationError.textContent =
+            "Unable to find this location. Please enter the address manually.";
+
+    }
+
+}
+
+
+
+/* =========================================================
+   SEARCH LOCATION
+========================================================= */
+
+let searchTimer = null;
+
+
+locationSearch.addEventListener(
+    "input",
+    function () {
+
+        const query =
+            this.value.trim();
+
+
+        clearTimeout(searchTimer);
+
 
         if (query.length < 3) {
 
-            mapSearchResults.style.display =
-                "none";
+            hideSuggestions();
 
             return;
-
         }
 
-        const url =
-            "https://nominatim.openstreetmap.org/search?format=json&q="
-            + encodeURIComponent(query)
-            + "&limit=5"
-            + "&addressdetails=1";
 
-        fetch(url)
-            .then(function (r) {
-                return r.json();
-            })
-            .then(function (data) {
+        /*
+         * Wait before searching.
+         * This prevents too many requests.
+         */
 
-                if (
-                    !data ||
-                    data.length === 0
-                ) {
-
-                    mapSearchResults.style.display =
-                        "none";
-
-                    return;
-
-                }
-
-                let html = "";
-
-                data.forEach(function (item) {
-
-                    html +=
-                        '<div class="map-search-result-item" '
-                        + 'data-lat="'
-                        + item.lat + '" '
-                        + 'data-lng="'
-                        + item.lon + '" '
-                        + 'data-name="'
-                        + item.display_name
-                            .replace(/"/g, '&quot;')
-                        + '">'
-                        + item.display_name
-                        + "</div>";
-
-                });
-
-                mapSearchResults.innerHTML = html;
-                mapSearchResults.style.display =
-                    "block";
-
-            })
-            .catch(function () {
-
-                mapSearchResults.style.display =
-                    "none";
-
-            });
-
-    }
-
-
-    mapSearchInput.addEventListener(
-        "input",
-        function () {
-
-            clearTimeout(searchTimer);
-
-            const query =
-                this.value.trim();
-
-            searchTimer = setTimeout(
+        searchTimer =
+            setTimeout(
                 function () {
 
-                    searchMapLocations(query);
-
-                },
-                400
-            );
-
-        }
-    );
-
-
-    mapSearchInput.addEventListener(
-        "keydown",
-        function (e) {
-
-            if (e.key === "Enter") {
-
-                e.preventDefault();
-
-                clearTimeout(searchTimer);
-
-                searchMapLocations(
-                    this.value.trim()
-                );
-
-            }
-
-        }
-    );
-
-
-    mapSearchBtn.addEventListener(
-        "click",
-        function () {
-
-            clearTimeout(searchTimer);
-
-            searchMapLocations(
-                mapSearchInput.value.trim()
-            );
-
-        }
-    );
-
-
-    mapSearchResults.addEventListener(
-        "click",
-        function (e) {
-
-            const item =
-                e.target.closest(
-                    ".map-search-result-item"
-                );
-
-            if (!item) return;
-
-            const lat =
-                parseFloat(
-                    item.getAttribute("data-lat")
-                );
-
-            const lng =
-                parseFloat(
-                    item.getAttribute("data-lng")
-                );
-
-            const name =
-                item.getAttribute("data-name");
-
-            mapSearchInput.value = name;
-
-            mapSearchResults.style.display =
-                "none";
-
-            placeSearchMarker(lat, lng, name);
-
-        }
-    );
-
-
-    document.addEventListener(
-        "click",
-        function (e) {
-
-            if (
-                !e.target.closest(".map-search-box")
-            ) {
-
-                mapSearchResults.style.display =
-                    "none";
-
-            }
-
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | AUTO-CENTER MAP ON BROWSER GEOLOCATION
-    |--------------------------------------------------------------------------
-    */
-
-    if (navigator.geolocation) {
-
-        navigator.geolocation.getCurrentPosition(
-            function (position) {
-
-                const lat =
-                    position.coords.latitude;
-
-                const lng =
-                    position.coords.longitude;
-
-                deliveryMap.setView(
-                    [lat, lng],
-                    15
-                );
-
-            }
-        );
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | USE MY CURRENT LOCATION BUTTON
-    |--------------------------------------------------------------------------
-    */
-
-    locateBtn.addEventListener(
-        "click",
-        function () {
-
-            if (!navigator.geolocation) {
-
-                alert(
-                    "Geolocation is not supported by your browser."
-                );
-
-                return;
-
-            }
-
-            const originalHTML =
-                locateBtn.innerHTML;
-
-            locateBtn.disabled = true;
-            locateBtn.innerHTML =
-                "Locating...";
-
-            navigator.geolocation.getCurrentPosition(
-                function (position) {
-
-                    locateBtn.disabled = false;
-                    locateBtn.innerHTML =
-                        originalHTML;
-
-                    const lat =
-                        position.coords.latitude;
-
-                    const lng =
-                        position.coords.longitude;
-
-                    deliveryMap.setView(
-                        [lat, lng],
-                        16
+                    searchAddress(
+                        query
                     );
-
-                    if (deliveryMarker) {
-
-                        deliveryMap.removeLayer(
-                            deliveryMarker
-                        );
-
-                    }
-
-                    deliveryMarker =
-                        L.marker(
-                            [lat, lng],
-                            { draggable: true }
-                        ).addTo(deliveryMap);
-
-                    deliveryMarker
-                        .bindPopup(
-                            "Delivery location",
-                            { offset: [0, -30] }
-                        )
-                        .openPopup();
-
-                    deliveryMarker.on(
-                        "dragend",
-                        function () {
-
-                            const pos =
-                                deliveryMarker
-                                    .getLatLng();
-
-                            latInput.value =
-                                pos.lat.toFixed(7);
-
-                            lngInput.value =
-                                pos.lng.toFixed(7);
-
-                            skipForward = true;
-
-                            reverseGeocode(
-                                pos.lat,
-                                pos.lng
-                            );
-
-                        }
-                    );
-
-                    latInput.value =
-                        lat.toFixed(7);
-
-                    lngInput.value =
-                        lng.toFixed(7);
-
-                    reverseGeocode(lat, lng);
-
-                },
-                function () {
-
-                    locateBtn.disabled = false;
-                    locateBtn.innerHTML =
-                        originalHTML;
-
-                    alert(
-                        "Unable to get your location. Please allow location access and try again."
-                    );
-
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 15000,
-                    maximumAge: 60000
-                }
-            );
-
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | ADDRESS AUTOCOMPLETE SUGGESTIONS
-    |--------------------------------------------------------------------------
-    */
-
-    let addressSuggestTimer =
-        null;
-
-
-    function fetchAddressSuggestions(query) {
-
-        const url =
-            "https://nominatim.openstreetmap.org/search?format=json&q="
-            + encodeURIComponent(query)
-            + "&limit=5"
-            + "&addressdetails=1";
-
-        fetch(url)
-            .then(function (r) {
-                return r.json();
-            })
-            .then(function (data) {
-
-                if (
-                    !data ||
-                    data.length === 0
-                ) {
-
-                    addressSuggestResults.style.display =
-                        "none";
-
-                    return;
-
-                }
-
-                let html = "";
-
-                data.forEach(function (item) {
-
-                    html +=
-                        '<div class="address-suggest-item" '
-                        + 'data-lat="'
-                        + item.lat + '" '
-                        + 'data-lng="'
-                        + item.lon + '" '
-                        + 'data-name="'
-                        + item.display_name
-                            .replace(/"/g, '&quot;')
-                        + '">'
-                        + item.display_name
-                        + "</div>";
-
-                });
-
-                addressSuggestResults.innerHTML = html;
-                addressSuggestResults.style.display =
-                    "block";
-
-            })
-            .catch(function () {
-
-                addressSuggestResults.style.display =
-                    "none";
-
-            });
-
-    }
-
-
-    addressInput.addEventListener(
-        "input",
-        function () {
-
-            if (skipForward) {
-
-                skipForward = false;
-
-                return;
-
-            }
-
-            clearTimeout(addressSuggestTimer);
-
-            const query =
-                this.value.trim();
-
-            if (query.length < 3) {
-
-                addressSuggestResults.style.display =
-                    "none";
-
-                return;
-
-            }
-
-            addressSuggestTimer =
-                setTimeout(
-                    function () {
-
-                        fetchAddressSuggestions(query);
-
-                    },
-                    400
-                );
-
-        }
-    );
-
-
-    addressSuggestResults.addEventListener(
-        "click",
-        function (e) {
-
-            const item =
-                e.target.closest(
-                    ".address-suggest-item"
-                );
-
-            if (!item) return;
-
-            const lat =
-                parseFloat(
-                    item.getAttribute("data-lat")
-                );
-
-            const lng =
-                parseFloat(
-                    item.getAttribute("data-lng")
-                );
-
-            const name =
-                item.getAttribute("data-name");
-
-            addressSuggestResults.style.display =
-                "none";
-
-            placeSearchMarker(lat, lng, name);
-
-        }
-    );
-
-
-    document.addEventListener(
-        "click",
-        function (e) {
-
-            if (
-                !e.target.closest(
-                    ".address-suggest-wrapper"
-                )
-            ) {
-
-                addressSuggestResults.style.display =
-                    "none";
-
-            }
-
-        }
-    );
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | FORWARD GEOCODE: TYPE ADDRESS -> MOVE MAP
-    |--------------------------------------------------------------------------
-    */
-
-    let skipForward = false;
-
-    let geocodeTimer = null;
-
-
-    addressInput.addEventListener(
-        "input",
-        function () {
-
-            if (skipForward) {
-
-                skipForward = false;
-
-                return;
-
-            }
-
-            clearTimeout(geocodeTimer);
-
-            const query =
-                this.value.trim();
-
-            if (query.length < 5) return;
-
-            geocodeTimer = setTimeout(
-                function () {
-
-                    const searchUrl =
-                        "https://nominatim.openstreetmap.org/search?format=json&q="
-                        + encodeURIComponent(query)
-                        + "&limit=1";
-
-                    fetch(searchUrl)
-                        .then(function (r) {
-                            return r.json();
-                        })
-                        .then(function (data) {
-
-                            if (
-                                data &&
-                                data.length > 0
-                            ) {
-
-                                const result =
-                                    data[0];
-
-                                const lat =
-                                    parseFloat(
-                                        result.lat
-                                    );
-
-                                const lng =
-                                    parseFloat(
-                                        result.lon
-                                    );
-
-                                deliveryMap.setView(
-                                    [lat, lng],
-                                    16
-                                );
-
-                                latInput.value =
-                                    lat.toFixed(7);
-
-                                lngInput.value =
-                                    lng.toFixed(7);
-
-                                if (deliveryMarker) {
-
-                                    deliveryMap.removeLayer(
-                                        deliveryMarker
-                                    );
-
-                                }
-
-                                deliveryMarker =
-                                    L.marker(
-                                        [lat, lng],
-                                        { draggable: true }
-                                    ).addTo(
-                                        deliveryMap
-                                    );
-
-                                deliveryMarker
-                                    .bindPopup(
-                                        "Delivery location",
-                                        { offset: [0, -30] }
-                                    )
-                                    .openPopup();
-
-                                deliveryMarker
-                                    .on(
-                                        "dragend",
-                                        function () {
-
-                                            const pos =
-                                                deliveryMarker
-                                                    .getLatLng();
-
-                                            latInput.value =
-                                                pos.lat.toFixed(7);
-
-                                            lngInput.value =
-                                                pos.lng.toFixed(7);
-
-                                            skipForward = true;
-
-                                            reverseGeocode(
-                                                pos.lat,
-                                                pos.lng
-                                            );
-
-                                        }
-                                    );
-
-                                const gUrl =
-                                    "https://www.google.com/maps/search/?api=1&query="
-                                    + lat + "," + lng;
-
-                                mapLinkInput.value = gUrl;
-
-                            }
-
-                        })
-                        .catch(
-                            function () {}
-                        );
 
                 },
                 800
             );
 
+    }
+);
+
+
+
+/* =========================================================
+   SEARCH ADDRESS
+========================================================= */
+
+async function searchAddress(
+    query
+) {
+
+    showLoading();
+
+
+    try {
+
+        /*
+         * Adding Nepal helps return
+         * more relevant Nepal locations.
+         *
+         * You can remove countrycodes
+         * if you want worldwide search.
+         */
+
+        const url =
+            "https://nominatim.openstreetmap.org/search" +
+
+            "?format=json" +
+
+            "&q=" +
+            encodeURIComponent(query + ", Nepal") +
+
+            "&countrycodes=np" +
+
+            "&limit=8" +
+
+            "&addressdetails=1";
+
+
+        const response =
+            await fetch(url, {
+                headers: {
+                    "Accept":
+                        "application/json"
+                }
+            });
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Search failed"
+            );
+
+        }
+
+
+        const results =
+            await response.json();
+
+
+        displaySuggestions(
+            results
+        );
+
+    }
+
+    catch (error) {
+
+        addressSuggestions.innerHTML =
+            `
+            <div class="address-no-result">
+                Unable to search right now. Please try again.
+            </div>
+            `;
+
+        addressSuggestions.style.display =
+            "block";
+
+    }
+
+}
+
+
+
+/* =========================================================
+   DISPLAY SUGGESTIONS
+========================================================= */
+
+function displaySuggestions(
+    results
+) {
+
+    addressSuggestions.innerHTML = "";
+
+
+    if (
+        !results ||
+        results.length === 0
+    ) {
+
+        addressSuggestions.innerHTML =
+            `
+            <div class="address-no-result">
+                No location found. Try entering a street, chowk, area or landmark.
+            </div>
+            `;
+
+        addressSuggestions.style.display =
+            "block";
+
+        return;
+    }
+
+
+    results.forEach(
+        function (place) {
+
+            const item =
+                document.createElement(
+                    "div"
+                );
+
+
+            item.className =
+                "address-suggestion";
+
+
+            item.innerHTML =
+                `
+                <span class="suggestion-icon">
+                    📍
+                </span>
+                ${escapeHTML(
+                    place.display_name
+                )}
+                `;
+
+
+            item.addEventListener(
+                "click",
+                function () {
+
+                    selectSuggestion(
+                        place
+                    );
+
+                }
+            );
+
+
+            addressSuggestions.appendChild(
+                item
+            );
+
         }
     );
 
 
-    const origReverseGeocode = reverseGeocode;
+    addressSuggestions.style.display =
+        "block";
 
-    reverseGeocode = function (lat, lng) {
-
-        skipForward = true;
-
-        origReverseGeocode(lat, lng);
-
-    };
-
-});
+}
 
 
-/*
-|--------------------------------------------------------------------------
-| FULL NAME LIVE VALIDATION
-|--------------------------------------------------------------------------
-*/
 
-nameInput.addEventListener("input", function () {
+/* =========================================================
+   SELECT SUGGESTION
+========================================================= */
 
-    /*
-     * Allow only letters and spaces
-     */
-    this.value =
-        this.value.replace(
-            /[^A-Za-z ]/g,
-            ""
+function selectSuggestion(
+    place
+) {
+
+    const latitude =
+        parseFloat(
+            place.lat
+        );
+
+    const longitude =
+        parseFloat(
+            place.lon
         );
 
 
-    const name =
-        this.value.trim();
+    const address =
+        place.display_name;
 
 
-    /*
-     * Empty
-     */
-    if (name === "") {
+    setMarker(
+        latitude,
+        longitude,
+        address
+    );
 
-        nameError.textContent = "";
 
-        return;
+    locationSearch.value =
+        getShortAddress(place);
+
+
+    hideSuggestions();
+
+}
+
+
+
+/* =========================================================
+   SHORT SEARCH ADDRESS
+========================================================= */
+
+function getShortAddress(
+    place
+) {
+
+    const address =
+        place.address || {};
+
+
+    const parts = [];
+
+
+    if (address.road) {
+
+        parts.push(
+            address.road
+        );
+
     }
 
 
-    /*
-     * Minimum 3 characters
-     */
-    if (name.length < 3) {
+    if (address.suburb) {
 
-        nameError.textContent =
-            "Name must contain only letters and atleast 3 characters.";
+        parts.push(
+            address.suburb
+        );
 
-        return;
     }
 
 
-    /*
-     * Valid
-     */
-    nameError.textContent = "";
+    if (address.city) {
 
-});
+        parts.push(
+            address.city
+        );
+
+    }
+
+    else if (address.town) {
+
+        parts.push(
+            address.town
+        );
+
+    }
+
+    else if (address.village) {
+
+        parts.push(
+            address.village
+        );
+
+    }
+
+
+    return parts.length > 0
+        ? parts.join(", ")
+        : place.display_name;
+
+}
 
 
 
-/*
-|--------------------------------------------------------------------------
-| PHONE LIVE VALIDATION
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   LOADING SUGGESTIONS
+========================================================= */
 
-phoneInput.addEventListener("input", function () {
+function showLoading() {
 
-    /*
-     * Numbers only
-     */
-    this.value =
-        this.value
-            .replace(
-                /[^0-9]/g,
-                ""
+    addressSuggestions.innerHTML =
+        `
+        <div class="address-loading">
+            🔍 Searching locations...
+        </div>
+        `;
+
+    addressSuggestions.style.display =
+        "block";
+
+}
+
+
+
+/* =========================================================
+   HIDE SUGGESTIONS
+========================================================= */
+
+function hideSuggestions() {
+
+    addressSuggestions.style.display =
+        "none";
+
+}
+
+
+
+/* =========================================================
+   SEARCH BUTTON
+========================================================= */
+
+searchLocationBtn.addEventListener(
+    "click",
+    function () {
+
+        const query =
+            locationSearch.value.trim();
+
+
+        if (query.length < 3) {
+
+            return;
+
+        }
+
+
+        searchAddress(
+            query
+        );
+
+    }
+);
+
+
+
+/* =========================================================
+   ENTER KEY SEARCH
+========================================================= */
+
+locationSearch.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.key === "Enter"
+        ) {
+
+            event.preventDefault();
+
+
+            const query =
+                this.value.trim();
+
+
+            if (query.length >= 3) {
+
+                searchAddress(
+                    query
+                );
+
+            }
+
+        }
+
+    }
+);
+
+
+
+/* =========================================================
+   CURRENT LOCATION
+========================================================= */
+
+currentLocationBtn.addEventListener(
+    "click",
+    function () {
+
+        if (!navigator.geolocation) {
+
+            locationError.textContent =
+                "Your browser does not support location.";
+
+            return;
+        }
+
+
+        currentLocationBtn.disabled =
+            true;
+
+        currentLocationBtn.innerHTML =
+            "📍 Finding your location...";
+
+
+        navigator.geolocation.getCurrentPosition(
+
+            function (position) {
+
+                const latitude =
+                    position.coords.latitude;
+
+                const longitude =
+                    position.coords.longitude;
+
+
+                setMarker(
+                    latitude,
+                    longitude
+                );
+
+
+                reverseGeocode(
+                    latitude,
+                    longitude
+                );
+
+
+                currentLocationBtn.disabled =
+                    false;
+
+                currentLocationBtn.innerHTML =
+                    "📍 Use My Current Location";
+
+            },
+
+
+            function () {
+
+                locationError.textContent =
+                    "Unable to access your current location. Please allow location permission or search manually.";
+
+                currentLocationBtn.disabled =
+                    false;
+
+                currentLocationBtn.innerHTML =
+                    "📍 Use My Current Location";
+
+            },
+
+            {
+                enableHighAccuracy: true,
+
+                timeout: 10000,
+
+                maximumAge: 0
+            }
+
+        );
+
+    }
+);
+
+
+
+/* =========================================================
+   CLICK OUTSIDE SUGGESTIONS
+========================================================= */
+
+document.addEventListener(
+    "click",
+    function (event) {
+
+        if (
+            !event.target.closest(
+                ".location-container"
             )
-            .slice(0, 10);
+        ) {
 
+            hideSuggestions();
 
-    const phone =
-        this.value;
+        }
 
-
-    /*
-     * Empty
-     */
-    if (phone === "") {
-
-        phoneError.textContent = "";
-
-        return;
     }
-
-
-    /*
-     * Check starting digits
-     */
-    if (
-        phone.length >= 2 &&
-        !phone.startsWith("97") &&
-        !phone.startsWith("98")
-    ) {
-
-        phoneError.textContent =
-            "Phone number must start with 97 or 98.";
-
-        return;
-    }
-
-
-    /*
-     * Check length
-     */
-    if (phone.length < 10) {
-
-        phoneError.textContent =
-            "Phone number must contain exactly 10 digits.";
-
-        return;
-    }
-
-
-    /*
-     * Valid
-     */
-    phoneError.textContent = "";
-
-});
+);
 
 
 
-/*
-|--------------------------------------------------------------------------
-| FORM SUBMIT VALIDATION
-|--------------------------------------------------------------------------
-*/
+/* =========================================================
+   HTML ESCAPE
+========================================================= */
+
+function escapeHTML(
+    text
+) {
+
+    const div =
+        document.createElement(
+            "div"
+        );
+
+    div.textContent =
+        text;
+
+    return div.innerHTML;
+
+}
+
+
+
+/* =========================================================
+   FORM SUBMIT VALIDATION
+========================================================= */
 
 checkoutForm.addEventListener(
     "submit",
@@ -1714,13 +2646,14 @@ checkoutForm.addEventListener(
         const phone =
             phoneInput.value.trim();
 
+        const address =
+            deliveryAddress.value.trim();
+
 
         let valid = true;
 
 
-        /*
-         * NAME VALIDATION
-         */
+        /* NAME */
 
         if (name === "") {
 
@@ -1740,7 +2673,9 @@ checkoutForm.addEventListener(
 
         }
 
-        else if (!/^[A-Za-z ]+$/.test(name)) {
+        else if (
+            !/^[A-Za-z ]+$/.test(name)
+        ) {
 
             nameError.textContent =
                 "Name can contain only letters and spaces.";
@@ -1757,9 +2692,7 @@ checkoutForm.addEventListener(
 
 
 
-        /*
-         * PHONE VALIDATION
-         */
+        /* PHONE */
 
         if (phone === "") {
 
@@ -1770,7 +2703,9 @@ checkoutForm.addEventListener(
 
         }
 
-        else if (!/^(97|98)[0-9]{8}$/.test(phone)) {
+        else if (
+            !/^(97|98)[0-9]{8}$/.test(phone)
+        ) {
 
             phoneError.textContent =
                 "Phone number must start with 97 or 98 and contain exactly 10 digits.";
@@ -1787,17 +2722,34 @@ checkoutForm.addEventListener(
 
 
 
-        /*
-         * STOP FORM IF INVALID
-         */
+        /* ADDRESS */
+
+        if (address === "") {
+
+            locationError.textContent =
+                "Please enter your delivery address.";
+
+            valid = false;
+
+        }
+
+        else {
+
+            locationError.textContent = "";
+
+        }
+
+
+
+        /* STOP */
 
         if (!valid) {
 
             event.preventDefault();
 
         }
-    }
 
+    }
 );
 
 </script>

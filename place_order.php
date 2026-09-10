@@ -41,14 +41,13 @@ if (
 
 /*
 |--------------------------------------------------------------------------
-| CUSTOMER
+| CUSTOMER ID
 |--------------------------------------------------------------------------
 */
 
-$customer_id =
-    (int) (
-        $_SESSION['customer_id'] ?? 0
-    );
+$customer_id = (int) (
+    $_SESSION['customer_id'] ?? 0
+);
 
 
 if ($customer_id <= 0) {
@@ -61,71 +60,58 @@ if ($customer_id <= 0) {
 
 /*
 |--------------------------------------------------------------------------
-| FORM DATA
+| GET FORM DATA
 |--------------------------------------------------------------------------
 */
 
-$customer_name =
-    trim(
-        $_POST['customer_name'] ?? ''
-    );
+$customer_name = trim(
+    $_POST['customer_name'] ?? ''
+);
 
-$customer_phone =
-    trim(
-        $_POST['customer_phone'] ?? ''
-    );
+$customer_phone = trim(
+    $_POST['customer_phone'] ?? ''
+);
 
-$delivery_address =
-    trim(
-        $_POST['delivery_address'] ?? ''
-    );
+$delivery_address = trim(
+    $_POST['delivery_address'] ?? ''
+);
 
-$delivery_map_link =
-    trim(
-        $_POST['delivery_map_link'] ?? ''
-    );
+$delivery_map_link = trim(
+    $_POST['delivery_map_link'] ?? ''
+);
 
-$delivery_lat =
-    trim(
-        $_POST['delivery_lat'] ?? ''
-    );
+$delivery_lat = isset($_POST['delivery_lat'])
+    && $_POST['delivery_lat'] !== ''
+    ? (float) $_POST['delivery_lat']
+    : 0;
 
-$delivery_lng =
-    trim(
-        $_POST['delivery_lng'] ?? ''
-    );
+$delivery_lng = isset($_POST['delivery_lng'])
+    && $_POST['delivery_lng'] !== ''
+    ? (float) $_POST['delivery_lng']
+    : 0;
 
-$order_note =
-    trim(
-        $_POST['order_note'] ?? ''
-    );
+$order_note = trim(
+    $_POST['order_note'] ?? ''
+);
 
-$payment_method =
-    trim(
-        $_POST['payment_method'] ?? ''
-    );
+$payment_method = trim(
+    $_POST['payment_method'] ?? ''
+);
 
 
 /*
 |--------------------------------------------------------------------------
-| VALIDATION
+| VALID PAYMENT METHODS
 |--------------------------------------------------------------------------
 */
 
 $allowed_payment_methods = [
 
     'Cash on Delivery',
-    'eSewa',
-    'Khalti'
+    'eSewa'
 
 ];
 
-
-/*
-|--------------------------------------------------------------------------
-| VALIDATE PAYMENT METHOD
-|--------------------------------------------------------------------------
-*/
 
 if (
     !in_array(
@@ -148,16 +134,10 @@ if (
 
 if ($customer_name === '') {
 
-    die(
-        "Full name is required."
-    );
+    die("Full name is required.");
 
 }
 
-
-/*
- * Only letters and spaces are allowed.
- */
 
 if (
     !preg_match(
@@ -173,16 +153,12 @@ if (
 }
 
 
-/*
- * Minimum 3 characters.
- */
-
 if (
     strlen($customer_name) < 3
 ) {
 
     die(
-        "Full name must contain at least 3 characters ."
+        "Full name must contain at least 3 characters."
     );
 
 }
@@ -190,23 +166,16 @@ if (
 
 /*
 |--------------------------------------------------------------------------
-| VALIDATE PHONE NUMBER
+| VALIDATE PHONE
 |--------------------------------------------------------------------------
 */
 
 if ($customer_phone === '') {
 
-    die(
-        "Phone number is required."
-    );
+    die("Phone number is required.");
 
 }
 
-
-/*
- * Exactly 10 digits
- * and must start with 97 or 98.
- */
 
 if (
     !preg_match(
@@ -239,13 +208,16 @@ if ($delivery_address === '') {
 
 /*
 |--------------------------------------------------------------------------
-| AUTO-GENERATE MAP LINK IF EMPTY
+| GENERATE GOOGLE MAP LINK
 |--------------------------------------------------------------------------
+|
+| If checkout.php does not send delivery_map_link,
+| create a Google Maps search link using the address.
+|
 */
 
 if (
-    $delivery_map_link === '' &&
-    $delivery_address !== ''
+    $delivery_map_link === ''
 ) {
 
     $delivery_map_link =
@@ -257,7 +229,7 @@ if (
 
 /*
 |--------------------------------------------------------------------------
-| CART CALCULATION
+| CART
 |--------------------------------------------------------------------------
 */
 
@@ -272,11 +244,9 @@ foreach (
     $cart as $food_id => $quantity
 ) {
 
-    $food_id =
-        (int) $food_id;
+    $food_id = (int) $food_id;
 
-    $quantity =
-        (int) $quantity;
+    $quantity = (int) $quantity;
 
 
     if (
@@ -289,7 +259,13 @@ foreach (
     }
 
 
-    $sql = "
+    /*
+    |--------------------------------------------------------------------------
+    | GET FOOD
+    |--------------------------------------------------------------------------
+    */
+
+    $food_sql = "
         SELECT
             food_id,
             food_name,
@@ -301,36 +277,55 @@ foreach (
     ";
 
 
-    $stmt =
-        mysqli_prepare(
-            $conn,
-            $sql
+    $food_stmt = mysqli_prepare(
+        $conn,
+        $food_sql
+    );
+
+
+    if (!$food_stmt) {
+
+        die(
+            "Unable to check food information."
         );
+
+    }
 
 
     mysqli_stmt_bind_param(
-        $stmt,
+        $food_stmt,
         "i",
         $food_id
     );
 
 
     mysqli_stmt_execute(
-        $stmt
+        $food_stmt
     );
 
 
-    $result =
+    $food_result =
         mysqli_stmt_get_result(
-            $stmt
+            $food_stmt
         );
 
 
     $food =
         mysqli_fetch_assoc(
-            $result
+            $food_result
         );
 
+
+    mysqli_stmt_close(
+        $food_stmt
+    );
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | FOOD NOT FOUND
+    |--------------------------------------------------------------------------
+    */
 
     if (!$food) {
 
@@ -341,7 +336,7 @@ foreach (
 
     /*
     |--------------------------------------------------------------------------
-    | CHECK FOOD AVAILABILITY
+    | FOOD AVAILABILITY
     |--------------------------------------------------------------------------
     */
 
@@ -352,14 +347,18 @@ foreach (
 
         die(
             "Sorry, "
-            . escape(
-                $food['food_name']
-            )
+            . escape($food['food_name'])
             . " is currently unavailable."
         );
 
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | PRICE
+    |--------------------------------------------------------------------------
+    */
 
     $price =
         (float) $food['price'];
@@ -372,6 +371,12 @@ foreach (
     $subtotal +=
         $item_total;
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | STORE ITEM
+    |--------------------------------------------------------------------------
+    */
 
     $cart_items[] = [
 
@@ -397,7 +402,7 @@ foreach (
 
 /*
 |--------------------------------------------------------------------------
-| CHECK VALID CART ITEMS
+| VALID CART CHECK
 |--------------------------------------------------------------------------
 */
 
@@ -418,12 +423,11 @@ if (
 
 /*
 |--------------------------------------------------------------------------
-| DELIVERY
+| DELIVERY CHARGE
 |--------------------------------------------------------------------------
 */
 
-$delivery_charge =
-    50;
+$delivery_charge = 50;
 
 
 $total_amount =
@@ -433,7 +437,7 @@ $total_amount =
 
 /*
 |--------------------------------------------------------------------------
-| PAYMENT STATUS
+| PAYMENT INFORMATION
 |--------------------------------------------------------------------------
 */
 
@@ -457,7 +461,7 @@ if (
         'Pending';
 
     $payment_gateway =
-        $payment_method;
+        'eSewa';
 
     $order_status =
         'Pending Payment';
@@ -467,7 +471,7 @@ if (
 
 /*
 |--------------------------------------------------------------------------
-| START TRANSACTION
+| START DATABASE TRANSACTION
 |--------------------------------------------------------------------------
 */
 
@@ -535,15 +539,26 @@ try {
     if (!$order_stmt) {
 
         throw new Exception(
-            "Unable to prepare order."
+            mysqli_error($conn)
         );
 
     }
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | BIND ORDER VALUES
+    |--------------------------------------------------------------------------
+    |
+    | i = integer
+    | s = string
+    | d = decimal/double
+    |
+    */
+
     mysqli_stmt_bind_param(
         $order_stmt,
-        "isssssdddssssss",
+        "issssddsdddssss",
         $customer_id,
         $customer_name,
         $customer_phone,
@@ -562,6 +577,12 @@ try {
     );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | EXECUTE ORDER
+    |--------------------------------------------------------------------------
+    */
+
     if (
         !mysqli_stmt_execute(
             $order_stmt
@@ -569,11 +590,17 @@ try {
     ) {
 
         throw new Exception(
-            "Unable to create order."
+            mysqli_stmt_error($order_stmt)
         );
 
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET ORDER ID
+    |--------------------------------------------------------------------------
+    */
 
     $order_id =
         mysqli_insert_id(
@@ -624,11 +651,17 @@ try {
     if (!$item_stmt) {
 
         throw new Exception(
-            "Unable to prepare order items."
+            mysqli_error($conn)
         );
 
     }
 
+
+    /*
+    |--------------------------------------------------------------------------
+    | INSERT EACH FOOD ITEM
+    |--------------------------------------------------------------------------
+    */
 
     foreach (
         $cart_items as $item
@@ -654,7 +687,7 @@ try {
         ) {
 
             throw new Exception(
-                "Unable to save order items."
+                mysqli_stmt_error($item_stmt)
             );
 
         }
@@ -669,7 +702,7 @@ try {
 
     /*
     |--------------------------------------------------------------------------
-    | COMMIT TRANSACTION
+    | COMMIT
     |--------------------------------------------------------------------------
     */
 
@@ -689,9 +722,10 @@ try {
         'Cash on Delivery'
     ) {
 
+
         /*
-         * Clear cart after successful COD order.
-         */
+        | Clear cart after successful order
+        */
 
         $_SESSION['cart'] = [];
 
@@ -708,7 +742,7 @@ try {
 
     /*
     |--------------------------------------------------------------------------
-    | eSEWA PAYMENT
+    | eSEWA
     |--------------------------------------------------------------------------
     */
 
@@ -717,37 +751,13 @@ try {
         'eSewa'
     ) {
 
+
         /*
-         * Keep cart until online payment succeeds.
-         */
+        | Keep cart until payment is completed.
+        */
 
         header(
             "Location: payment/esewa_pay.php?order_id="
-            . $order_id
-        );
-
-        exit();
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | KHALTI PAYMENT
-    |--------------------------------------------------------------------------
-    */
-
-    if (
-        $payment_method ===
-        'Khalti'
-    ) {
-
-        /*
-         * Keep cart until online payment succeeds.
-         */
-
-        header(
-            "Location: payment/khalti_pay.php?order_id="
             . $order_id
         );
 
@@ -771,17 +781,33 @@ try {
 
 
     /*
-     * Log actual error for debugging.
-     */
+    |--------------------------------------------------------------------------
+    | LOG ACTUAL ERROR
+    |--------------------------------------------------------------------------
+    */
 
     error_log(
-        "Order Error: "
+        "Timeout Cafe Order Error: "
         . $e->getMessage()
     );
 
 
+    /*
+    |--------------------------------------------------------------------------
+    | DEVELOPMENT ERROR
+    |--------------------------------------------------------------------------
+    |
+    | During development, show the actual MySQL error.
+    | You can change this later to a generic message.
+    |
+    */
+
     die(
-        "Order could not be created. Please try again."
+        "Order could not be created.<br><br>"
+        . "Error: "
+        . htmlspecialchars(
+            $e->getMessage()
+        )
     );
 
 }
