@@ -70,4 +70,21 @@ define('OTP_EXPIRY_MINUTES', 5);
 
 define('APP_NAME', 'Timeout Cafe');
 
+
+/*
+|--------------------------------------------------------------------------
+| Google Maps API Key
+|--------------------------------------------------------------------------
+|
+| Get your API key from: https://console.cloud.google.com/apis/credentials
+|
+| Enable these APIs in Google Cloud Console:
+|   1. Maps JavaScript API
+|   2. Places API
+|   3. Geocoding API
+|
+*/
+
+define('GOOGLE_MAPS_API_KEY', 'YOUR_GOOGLE_MAPS_API_KEY_HERE');
+
 ?>

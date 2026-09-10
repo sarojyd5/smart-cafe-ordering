@@ -80,6 +80,21 @@ $delivery_address =
         $_POST['delivery_address'] ?? ''
     );
 
+$delivery_map_link =
+    trim(
+        $_POST['delivery_map_link'] ?? ''
+    );
+
+$delivery_lat =
+    trim(
+        $_POST['delivery_lat'] ?? ''
+    );
+
+$delivery_lng =
+    trim(
+        $_POST['delivery_lng'] ?? ''
+    );
+
 $order_note =
     trim(
         $_POST['order_note'] ?? ''
@@ -218,6 +233,24 @@ if ($delivery_address === '') {
     die(
         "Delivery address is required."
     );
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| AUTO-GENERATE MAP LINK IF EMPTY
+|--------------------------------------------------------------------------
+*/
+
+if (
+    $delivery_map_link === '' &&
+    $delivery_address !== ''
+) {
+
+    $delivery_map_link =
+        "https://www.google.com/maps/search/?api=1&query="
+        . urlencode($delivery_address);
 
 }
 
@@ -459,6 +492,9 @@ try {
             customer_name,
             customer_phone,
             delivery_address,
+            delivery_map_link,
+            delivery_lat,
+            delivery_lng,
             order_note,
             subtotal,
             delivery_charge,
@@ -470,6 +506,9 @@ try {
         )
         VALUES
         (
+            ?,
+            ?,
+            ?,
             ?,
             ?,
             ?,
@@ -504,11 +543,14 @@ try {
 
     mysqli_stmt_bind_param(
         $order_stmt,
-        "issssdddssss",
+        "isssssdddssssss",
         $customer_id,
         $customer_name,
         $customer_phone,
         $delivery_address,
+        $delivery_map_link,
+        $delivery_lat,
+        $delivery_lng,
         $order_note,
         $subtotal,
         $delivery_charge,

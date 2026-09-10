@@ -35,6 +35,7 @@ $sql = "
         customer_name,
         customer_phone,
         delivery_address,
+        delivery_map_link,
         order_note,
         subtotal,
         delivery_charge,
@@ -249,6 +250,27 @@ $items = mysqli_stmt_get_result(
                 ?>
 
             </p>
+
+            <?php if (
+                !empty($order['delivery_map_link'])
+            ): ?>
+
+                <a
+                    href="<?php
+                    echo escape(
+                        $order['delivery_map_link']
+                    );
+                    ?>"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="map-view-btn"
+                    style="display:inline-block; margin-top:12px;">
+
+                    View on Google Maps &#8599;
+
+                </a>
+
+            <?php endif; ?>
 
         </div>
 
