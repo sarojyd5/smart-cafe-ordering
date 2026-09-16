@@ -9,6 +9,13 @@ $items = [];
 
 $subtotal = 0;
 
+
+/*
+|--------------------------------------------------------------------------
+| GET CART ITEMS
+|--------------------------------------------------------------------------
+*/
+
 if (!empty($cart)) {
 
     $food_ids = array_keys($cart);
@@ -31,7 +38,10 @@ if (!empty($cart)) {
         WHERE food_id IN ($placeholders)
     ";
 
-    $stmt = mysqli_prepare($conn, $sql);
+    $stmt = mysqli_prepare(
+        $conn,
+        $sql
+    );
 
     mysqli_stmt_bind_param(
         $stmt,
@@ -49,7 +59,8 @@ if (!empty($cart)) {
 
         $quantity = $cart[$food_id];
 
-        $total = $food['price'] * $quantity;
+        $total =
+            $food['price'] * $quantity;
 
         $food['quantity'] = $quantity;
 
@@ -63,17 +74,35 @@ if (!empty($cart)) {
     mysqli_stmt_close($stmt);
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| DELIVERY CHARGE
+|--------------------------------------------------------------------------
+*/
+
 $delivery_charge = 0;
 
 if ($subtotal > 0) {
+
     $delivery_charge = 50;
+
 }
 
-$grand_total = $subtotal + $delivery_charge;
+
+/*
+|--------------------------------------------------------------------------
+| GRAND TOTAL
+|--------------------------------------------------------------------------
+*/
+
+$grand_total =
+    $subtotal + $delivery_charge;
 
 ?>
 
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
@@ -84,7 +113,10 @@ $grand_total = $subtotal + $delivery_charge;
         name="viewport"
         content="width=device-width, initial-scale=1.0">
 
-    <title>Your Cart | Timeout Cafe</title>
+    <title>
+        Your Cart | Timeout Cafe
+    </title>
+
 
     <link
         rel="stylesheet"
@@ -96,27 +128,49 @@ $grand_total = $subtotal + $delivery_charge;
 
 </head>
 
+
 <body>
+
 
 <?php include "includes/navbar.php"; ?>
 
 
 <main class="cart-page">
 
+
+    <!--
+    |--------------------------------------------------------------------------
+    | CART HEADER
+    |--------------------------------------------------------------------------
+    -->
+
     <div class="cart-header">
 
-        <p>YOUR ORDER</p>
+        <p>
+            YOUR ORDER
+        </p>
 
-        <h1>Shopping Cart</h1>
+        <h1>
+            Shopping Cart
+        </h1>
 
     </div>
 
 
     <?php if (empty($items)): ?>
 
+
+        <!--
+        |--------------------------------------------------------------------------
+        | EMPTY CART
+        |--------------------------------------------------------------------------
+        -->
+
         <div class="empty-cart">
 
-            <h2>Your cart is empty</h2>
+            <h2>
+                Your cart is empty
+            </h2>
 
             <p>
                 Add some delicious food to your cart.
@@ -132,86 +186,160 @@ $grand_total = $subtotal + $delivery_charge;
 
         </div>
 
+
     <?php else: ?>
 
 
         <div class="cart-layout">
 
 
-            <!-- CART ITEMS -->
+            <!--
+            |--------------------------------------------------------------------------
+            | CART ITEMS
+            |--------------------------------------------------------------------------
+            -->
 
             <section class="cart-items">
 
+
                 <?php foreach ($items as $item): ?>
+
 
                     <article class="cart-item">
 
 
+                        <!-- FOOD IMAGE -->
+
                         <div class="cart-item-image">
 
                             <img
-                                src="assets/images/foods/<?php echo htmlspecialchars($item['image']); ?>"
-                                alt="<?php echo htmlspecialchars($item['food_name']); ?>"
-                                onerror="this.src='assets/images/foods/default.jpg';">
+                                src="assets/images/foods/<?php
+                                echo htmlspecialchars(
+                                    $item['image']
+                                );
+                                ?>"
+                                alt="<?php
+                                echo htmlspecialchars(
+                                    $item['food_name']
+                                );
+                                ?>"
+                                onerror="
+                                    this.src='assets/images/foods/default.jpg';
+                                ">
 
                         </div>
 
 
+                        <!-- FOOD INFORMATION -->
+
                         <div class="cart-item-info">
 
+
                             <h3>
-                                <?php echo htmlspecialchars($item['food_name']); ?>
+
+                                <?php
+                                echo htmlspecialchars(
+                                    $item['food_name']
+                                );
+                                ?>
+
                             </h3>
 
+
                             <p>
+
                                 Rs.
-                                <?php echo number_format($item['price'], 2); ?>
+                                <?php
+                                echo number_format(
+                                    $item['price'],
+                                    2
+                                );
+                                ?>
+
                             </p>
 
 
+                            <!--
+                            |--------------------------------------------------------------------------
+                            | QUANTITY + UPDATE
+                            |--------------------------------------------------------------------------
+                            -->
+
                             <div class="quantity-control">
+
 
                                 <form
                                     method="POST"
                                     action="cart_actions.php">
+
 
                                     <input
                                         type="hidden"
                                         name="action"
                                         value="update">
 
+
                                     <input
                                         type="hidden"
                                         name="food_id"
-                                        value="<?php echo $item['food_id']; ?>">
+                                        value="<?php
+                                        echo $item['food_id'];
+                                        ?>">
+
 
                                     <input
                                         type="number"
                                         name="quantity"
-                                        value="<?php echo $item['quantity']; ?>"
+                                        value="<?php
+                                        echo $item['quantity'];
+                                        ?>"
                                         min="1"
                                         max="20">
 
-                                    <button type="submit">
+
+                                    <button
+                                        type="submit">
+
                                         Update
+
                                     </button>
+
 
                                 </form>
 
 
+                                <!--
+                                |--------------------------------------------------------------------------
+                                | REMOVE ITEM
+                                |--------------------------------------------------------------------------
+                                -->
+
                                 <form
                                     method="POST"
-                                    action="cart_actions.php">
+                                    action="cart_actions.php"
+                                    onsubmit="return confirmRemove(
+                                        '<?php
+                                        echo htmlspecialchars(
+                                            $item['food_name'],
+                                            ENT_QUOTES
+                                        );
+                                        ?>'
+                                    );">
+
 
                                     <input
                                         type="hidden"
                                         name="action"
                                         value="remove">
 
+
                                     <input
                                         type="hidden"
                                         name="food_id"
-                                        value="<?php echo $item['food_id']; ?>">
+                                        value="<?php
+                                        echo $item['food_id'];
+                                        ?>">
+
 
                                     <button
                                         type="submit"
@@ -221,33 +349,54 @@ $grand_total = $subtotal + $delivery_charge;
 
                                     </button>
 
+
                                 </form>
+
 
                             </div>
 
+
                         </div>
 
+
+                        <!-- ITEM TOTAL -->
 
                         <div class="cart-item-total">
 
                             Rs.
-                            <?php echo number_format($item['total'], 2); ?>
+                            <?php
+                            echo number_format(
+                                $item['total'],
+                                2
+                            );
+                            ?>
 
                         </div>
 
+
                     </article>
+
 
                 <?php endforeach; ?>
 
 
+                <!--
+                |--------------------------------------------------------------------------
+                | CLEAR CART
+                |--------------------------------------------------------------------------
+                -->
+
                 <form
                     method="POST"
-                    action="cart_actions.php">
+                    action="cart_actions.php"
+                    onsubmit="return confirmClearCart();">
+
 
                     <input
                         type="hidden"
                         name="action"
                         value="clear">
+
 
                     <button
                         type="submit"
@@ -257,24 +406,43 @@ $grand_total = $subtotal + $delivery_charge;
 
                     </button>
 
+
                 </form>
+
 
             </section>
 
 
-            <!-- SUMMARY -->
+            <!--
+            |--------------------------------------------------------------------------
+            | ORDER SUMMARY
+            |--------------------------------------------------------------------------
+            -->
 
             <aside class="cart-summary">
 
-                <h2>Order Summary</h2>
+
+                <h2>
+                    Order Summary
+                </h2>
 
 
                 <div class="summary-row">
 
-                    <span>Subtotal</span>
+                    <span>
+                        Subtotal
+                    </span>
 
                     <strong>
-                        Rs. <?php echo number_format($subtotal, 2); ?>
+
+                        Rs.
+                        <?php
+                        echo number_format(
+                            $subtotal,
+                            2
+                        );
+                        ?>
+
                     </strong>
 
                 </div>
@@ -282,10 +450,20 @@ $grand_total = $subtotal + $delivery_charge;
 
                 <div class="summary-row">
 
-                    <span>Delivery</span>
+                    <span>
+                        Delivery
+                    </span>
 
                     <strong>
-                        Rs. <?php echo number_format($delivery_charge, 2); ?>
+
+                        Rs.
+                        <?php
+                        echo number_format(
+                            $delivery_charge,
+                            2
+                        );
+                        ?>
+
                     </strong>
 
                 </div>
@@ -296,16 +474,33 @@ $grand_total = $subtotal + $delivery_charge;
 
                 <div class="summary-total">
 
-                    <span>Total</span>
+                    <span>
+                        Total
+                    </span>
 
                     <strong>
-                        Rs. <?php echo number_format($grand_total, 2); ?>
+
+                        Rs.
+                        <?php
+                        echo number_format(
+                            $grand_total,
+                            2
+                        );
+                        ?>
+
                     </strong>
 
                 </div>
 
 
+                <!--
+                |--------------------------------------------------------------------------
+                | CHECKOUT BUTTON
+                |--------------------------------------------------------------------------
+                -->
+
                 <?php if (!empty($_SESSION['customer_id'])): ?>
+
 
                     <a
                         href="checkout.php"
@@ -315,7 +510,9 @@ $grand_total = $subtotal + $delivery_charge;
 
                     </a>
 
+
                 <?php else: ?>
+
 
                     <a
                         href="login.php"
@@ -324,6 +521,7 @@ $grand_total = $subtotal + $delivery_charge;
                         Login to Checkout
 
                     </a>
+
 
                 <?php endif; ?>
 
@@ -336,16 +534,57 @@ $grand_total = $subtotal + $delivery_charge;
 
                 </a>
 
+
             </aside>
+
 
         </div>
 
+
     <?php endif; ?>
+
 
 </main>
 
 
 <?php include "includes/footer.php"; ?>
+
+
+<script>
+
+/*
+|--------------------------------------------------------------------------
+| REMOVE ITEM CONFIRMATION
+|--------------------------------------------------------------------------
+*/
+
+function confirmRemove(foodName) {
+
+    return confirm(
+        "Are you sure you want to remove \"" +
+        foodName +
+        "\" from your cart?"
+    );
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| CLEAR CART CONFIRMATION
+|--------------------------------------------------------------------------
+*/
+
+function confirmClearCart() {
+
+    return confirm(
+        "Are you sure you want to clear your entire cart?"
+    );
+
+}
+
+</script>
+
 
 </body>
 

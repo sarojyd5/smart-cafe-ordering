@@ -120,7 +120,9 @@ if ($order_id <= 0) {
 
 
             <a
-                href="order_history.php"
+                href="customer/order_details.php?order_id=<?php
+                echo $order_id;
+                ?>"
                 class="admin-view-btn">
 
                 View My Orders
